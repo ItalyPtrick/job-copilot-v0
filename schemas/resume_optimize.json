@@ -1,0 +1,28 @@
+{
+"task_type": "resume_optimize",
+"input":{
+    "resume_item":{"type":"string","required":true,"min_length":10},
+    "target_jd_keywords":{"type":"array","required":false,"min":1,"max":15},
+    "hard_requirements":{"type":"array","min":1,"max":15},
+    "nice_to_have":{"type":"array","required":false,"min":1,"max":15},
+    "role_summary":{"type":"string","required":false,"min_length":10}
+},
+"output":{
+    "original":{"type":"string","required":true,"min_length":10},
+    "suggestions":{
+        "type":"array","required":true,"min":1,
+        "items":{
+            "type":"object",
+            "properties":{
+                "issue":{"type":"string","required":true,"min_length":10},
+                "reason":{"type":"string","required":true,"min_length":10},
+                "rewrite":{"type":"string","required":true,"min_length":10}
+            }
+        }
+    },
+    "optimized_version":{"type":"string","required":true,"min_length":10}
+},
+    "error_cases": {
+    "resume_item_too_short": "resume_item 少于 50 字时返回错误"
+  }
+}
