@@ -28,7 +28,7 @@
         }
     },
     "output": {
-        "original": {
+        "original_version": {
             "type": "string",
             "required": true,
             "min_length": 10
