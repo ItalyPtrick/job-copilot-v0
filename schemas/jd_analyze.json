@@ -1,14 +1,32 @@
 {
   "task_type": "jd_analyze",
   "input": {
-    "jd_text": { "type": "string", "required": true, "min_length": 50 },
-    "target_role": { "type": "string", "required": false }
+    "jd_text": {
+      "type": "string",
+      "required": true,
+      "min_length": 50
+    },
+    "target_role": {
+      "type": "string",
+      "required": false
+    }
   },
   "output": {
-    "role_summary": { "type": "string" },
-    "hard_requirements": { "type": "array", "min": 1, "max": 10 },
-    "key_skills": { "type": "array", "max": 15 },
-    "nice_to_have": { "type": "array" }
+    "role_summary": {
+      "type": "string"
+    },
+    "hard_requirements": {
+      "type": "array",
+      "min": 1,
+      "max": 10
+    },
+    "key_skills": {
+      "type": "array",
+      "max": 15
+    },
+    "nice_to_have": {
+      "type": "array"
+    }
   },
   "error_cases": {
     "jd_text_too_short": "jd_text 少于 50 字时返回错误"
