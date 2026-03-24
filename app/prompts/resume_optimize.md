@@ -31,3 +31,64 @@
   "optimized_version": "优化后的简历"
 }
 ```
+
+# 示例
+
+## 示例 1
+
+**输入**
+
+```json
+{
+  "resume_item": "负责公司后端开发工作，完成了一些功能模块，和团队一起推进项目。",
+  "target_jd_keywords": ["FastAPI", "Python", "RESTful API", "数据库设计"],
+  "role_summary": "Python后端开发工程师"
+}
+```
+
+**输出**
+
+```json
+{
+  "original_version": "负责公司后端开发工作，完成了一些功能模块，和团队一起推进项目。",
+  "suggestions": [
+    {
+      "issue": "描述过于笼统，缺少具体技术栈和量化成果",
+      "reason": "招聘方无法判断候选人的实际技术能力和贡献程度",
+      "rewrite": "使用 FastAPI 开发 RESTful API 接口，负责用户模块与订单模块的设计与实现"
+    },
+    {
+      "issue": "未体现与目标岗位相关的关键技能",
+      "reason": "JD 要求 Python 和数据库设计经验，但原文完全未提及",
+      "rewrite": "基于 Python + SQLAlchemy 完成数据库表结构设计，支持日均万级请求量"
+    }
+  ],
+  "optimized_version": "使用 FastAPI 开发 RESTful API，负责用户模块与订单模块的设计与实现；基于 Python + SQLAlchemy 完成数据库表结构设计，支持日均万级请求量。"
+}
+```
+
+## 示例 2
+
+**输入**
+
+```json
+{
+  "resume_item": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，实现 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms。"
+}
+```
+
+**输出**
+
+```json
+{
+  "original_version": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，实现 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms。",
+  "suggestions": [
+    {
+      "issue": "描述已较完整，可补充项目规模或用户量以增强说服力",
+      "reason": "量化数据能让成果更具体，但现有内容已包含技术栈和性能指标，属于轻度优化",
+      "rewrite": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，支持 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms，累计服务用户 XX 人"
+    }
+  ],
+  "optimized_version": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，支持 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms，累计服务用户 XX 人。"
+}
+```

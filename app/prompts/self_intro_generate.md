@@ -26,3 +26,59 @@
   "key_points": ["关键点1", "关键点2", "关键点3"]
 }
 ```
+
+# 示例
+
+## 示例 1
+
+**输入**
+
+```json
+{
+  "tone": "formal",
+  "resume_item": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，支持 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms。",
+  "target_jd_keywords": ["FastAPI", "Python", "RESTful API", "数据库设计"],
+  "role_summary": "Python后端开发工程师"
+}
+```
+
+**输出**
+
+```json
+{
+  "version_30s": "您好，我是一名Python后端开发工程师，熟悉FastAPI与PostgreSQL，曾独立完成求职助手后端开发，实现JWT鉴权与结构化输出，接口响应时间控制在200ms以内，具备独立交付生产级接口的能力。",
+  "version_60s": "您好，我是一名专注于Python后端开发的工程师。在近期项目中，我独立使用FastAPI + PostgreSQL开发求职助手后端，设计并实现了JWT鉴权、分页查询与结构化输出模块，接口响应时间稳定在200ms以内。我具备从数据库表结构设计到RESTful API交付的完整开发能力，擅长独立推进项目落地。希望能在贵司的Python后端岗位上持续成长，贡献实际价值。",
+  "key_points": [
+    "FastAPI + PostgreSQL全栈后端经验",
+    "独立交付生产级接口能力",
+    "JWT鉴权与结构化输出实践",
+    "接口性能优化意识"
+  ]
+}
+```
+
+## 示例 2
+
+**输入**
+
+```json
+{
+  "tone": "conversational",
+  "resume_item": "使用 FastAPI + PostgreSQL 独立开发求职助手后端，支持 JWT 鉴权、分页查询与结构化输出，接口响应时间 < 200ms。"
+}
+```
+
+**输出**
+
+```json
+{
+  "version_30s": "你好，我做过FastAPI + PostgreSQL的后端项目，独立搭建过包含JWT鉴权和分页查询的完整后端，接口响应时间压在200ms以内，比较擅长从零把一个后端服务跑起来。",
+  "version_60s": "你好，我是一名后端开发方向的工程师。之前独立做过一个求职助手的后端项目，用FastAPI + PostgreSQL搭的，自己设计了数据库结构，实现了JWT登录鉴权、分页查询这些功能，最后接口响应时间稳定在200ms以内。整个项目从设计到上线都是我一个人推进的，所以对独立交付这件事还是比较有信心的。期待有机会加入你们团队一起做东西。",
+  "key_points": [
+    "FastAPI + PostgreSQL实战经验",
+    "独立完整交付项目经历",
+    "JWT鉴权与性能优化实践",
+    "主动推进项目落地的习惯"
+  ]
+}
+```
