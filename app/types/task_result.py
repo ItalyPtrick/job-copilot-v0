@@ -1,6 +1,7 @@
 # task_result.py
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+from .trace_event import TraceEvent
 
 
 class ErrorDetail(BaseModel):
@@ -13,3 +14,4 @@ class TaskResult(BaseModel):
     task_type: str
     result: Optional[Dict[str, Any]] = None
     error: Optional[ErrorDetail] = None
+    trace: Optional[list[TraceEvent]] = None
