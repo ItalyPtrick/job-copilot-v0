@@ -1,6 +1,6 @@
 # task_result.py
+from typing import Any, Literal
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
 from .trace_event import TraceEvent
 
 
@@ -10,8 +10,27 @@ class ErrorDetail(BaseModel):
 
 
 class TaskResult(BaseModel):
-    status: str
+    status: Literal["success", "error"]
     task_type: str
-    result: Optional[Dict[str, Any]] = None
-    error: Optional[ErrorDetail] = None
-    trace: Optional[list[TraceEvent]] = None
+    result: dict[str, Any] | None = None
+    error: ErrorDetail | None = None
+    trace: list[TraceEvent] | None = None
+
+    # 任务执行结果工厂类
+    @classmethod
+    def success(cls, task_type: str, result: dict, trace: list[TraceEvent]) -> "TaskResult":
+        return cls(
+            status="success", task_type=task_type, result=result, trace=trace
+        )
+
+    # 错误任务执行结果工厂类
+    @classmethod
+    def error(
+        cls, task_type: str, error_type: str, error_message: str, trace: list[TraceEvent]
+    ) -> "TaskResult":
+        return cls(
+            status="error",
+            task_type=task_type,
+            error=ErrorDetail(error_type=error_type, error_message=error_message),
+            trace=trace,
+        )
