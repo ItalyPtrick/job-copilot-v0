@@ -22,14 +22,14 @@ class TaskResult(BaseModel):
 
     # 任务执行结果工厂类
     @classmethod
-    def success(
+    def from_success(
         cls, task_type: str, result: dict, trace: list[TraceEvent]
     ) -> "TaskResult":
         return cls(status="success", task_type=task_type, result=result, trace=trace)
 
     # 错误任务执行结果工厂类
     @classmethod
-    def error(
+    def from_error(
         cls,
         task_type: str,
         error_type: str,

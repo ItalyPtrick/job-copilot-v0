@@ -77,7 +77,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
             "结果汇总成功",
         )
 
-        return TaskResult.success(
+        return TaskResult.from_success(
             task_type=task_type, result=result, trace=trace_events
         )
 
@@ -85,7 +85,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
     except Exception as e:
         if current_node:
             trace(trace_events, current_node, TraceStatus.ERROR, f"错误: {str(e)}")
-        return TaskResult.error(
+        return TaskResult.from_error(
             task_type=task_type,
             error_type=type(e).__name__,
             error_message=str(e),
