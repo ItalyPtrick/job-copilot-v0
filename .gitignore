@@ -1,5 +1,19 @@
 .env
-.claude/
-.claude/**
 .serena/
 .serena/**
+.continue/
+.continue/**
+.trae/
+.trae/**
+.qoder/
+.qoder/**
+skills-lock.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Local IDE/agent settings
+.claude/settings.local.json
+evaluation/.claude/

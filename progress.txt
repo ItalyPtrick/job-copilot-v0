@@ -1,0 +1,21 @@
+== 最后更新 ==
+2026-03-26
+
+== 今天完成了 ==
+- Day 6 月末回归与验收
+- 步骤 1 完成：整理回归场景清单
+  - 成功主链路：jd_analyze / resume_optimize / self_intro_generate 各一条，含完整输入、期望输出、trace、error/retriever_context 字段
+  - 工具调用：当前版本未实现，第 5 月对接点（文档切分阶段）
+  - session 连续改写：设计已清晰（session ID / 历史窗口 / 带历史调 LLM），当前未实现，第 5 月对接点（检索与生成阶段）
+  - 异常场景：两条路径（无效任务类型主动 return / 运行时异常 except 捕获），各有样例
+- 验收文档：evaluation/week4_backend_acceptance.md
+
+== 下次继续 ==
+- 步骤 2：跑成功主链路样例（启动 FastAPI，用三类任务各跑一组，记录实际输出）
+- 步骤 3：跑异常场景样例
+- 步骤 4：session 连续改写（当前未实现，结论记录即可）
+- 步骤 5：trace 可解释性检查
+- 步骤 6：整理验收结论与遗留问题
+
+== 卡住的问题 ==
+- 无
