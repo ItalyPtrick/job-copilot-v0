@@ -1,0 +1,4 @@
+interface:
+  display_name: "Daily Plan Coach"
+  short_description: "Principle-first coaching from Today_Plan."
+  default_prompt: "Use $daily-plan-coach to read Today_Plan, continue today's study plan, quiz me on the underlying principles, and update progress."

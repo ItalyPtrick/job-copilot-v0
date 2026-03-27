@@ -1,27 +1,5 @@
 # job-copilot-v0 项目规范
 
-## Daily Plan Mentor 桥接规则
-
-以下入口**必须且只能**触发 `.claude/agents/daily_plan_mentor.md`，不得先调用其他 skill、普通讲解模式或其他 agent：
-
-**命中条件（满足任意一条即触发）：**
-- 消息中包含 `@daily-plan-mentor`（无论前后是否附带自然短语）
-- 消息独立包含以下自然短语之一：「开始今天的学习」「继续今天的学习」「继续今天计划」
-
-**触发动作：**
-立即读取 `.claude/agents/daily_plan_mentor.md` 并严格按其工作流程执行，跳过所有其他路由判断。
-
----
-
-## 会话启动协议
-
-每次新会话开始：
-1. 读取 `progress.txt` 了解当前进度和已知 Bug
-2. 如果 `lessons.md` 存在，读取历史教训并主动避免
-3. 用一句话确认：“已同步进度：[摘要]，准备开始。”
-
----
-
 ## 项目简介
 
 求职 AI 助手。FastAPI 后端接收任务请求，调用 LLM 完成三类任务：JD 分析、简历优化、自我介绍生成，响应附带 trace 执行轨迹。
@@ -122,3 +100,15 @@ pytest tests/ -v
 ```
 
 验收文档：`evaluation/week4_backend_acceptance.md`
+
+## Daily Plan Coach Bridge
+
+- Repo-local learning guidance lives in `skills/daily-plan-coach/SKILL.md`.
+- When the user says any of the following, Codex must read `skills/daily-plan-coach/SKILL.md` first and follow that workflow:
+  - `开始今天的学习`
+  - `继续今天的学习`
+  - `继续今天计划`
+  - `进入 Daily Plan Coach 模式`
+- For these triggers, do not switch to another generic learning, teaching, or explanation skill before reading the repo-local skill file above.
+- The study session state must come from `Today_Plan/*.md` and `Today_Plan/daily_progress.txt`.
+- Do not treat project-level `progress.txt` as the study session state file.
