@@ -35,7 +35,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
                 TraceStatus.ERROR,
                 f"无效的任务类型: {task_type}",
             )
-            return TaskResult.error(  # 直接返回错误结果
+            return TaskResult.from_error(  # 直接返回错误结果
                 task_type=task_type,
                 error_type="InvalidTaskType",
                 error_message=f"无效的任务类型: {task_type}",

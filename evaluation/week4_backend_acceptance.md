@@ -205,6 +205,16 @@
 
 ---
 
+## session 连续改写
+
+**验收结论：当前版本未实现，无法验证。**
+
+- 当前状态：session ID 管理、历史窗口维护、调 LLM 时携带历史三个组件均未实现
+- 验收处理：无可测试行为，跳过样例执行，结论直接记录
+- 后续对接点：第 5 月检索与生成阶段实现后补充验收
+
+---
+
 ### 路径2：运行时异常（except 捕获）
 
 **触发条件**：prompt 加载失败 / LLM 调用失败 / 结果汇总失败
@@ -245,3 +255,30 @@
 ```
 
 ---
+
+## 总结
+
+### 1. 通过项
+
+- **成功主链路**：jd_analyze、resume_optimize、self_intro_generate 三类任务均正常返回结果
+- **异常场景**：
+  - 路径1（无效任务类型）：能主动 return 并返回错误
+  - 路径2（运行时异常）：能捕获异常并记录失败节点
+
+### 2. 未通过项（已修复）
+
+- **问题**：异常场景测试失败，error_type 显示AttributeError，error_message 显示 "error"，trace 出现两条重复的"任务识别完成"节点
+- **根因**：`TaskResult.error()` 方法名写错，导致调用失败时被当作普通字典处理
+- **修复**：将 `TaskResult.error()` 改为 `TaskResult.from_error()`。完整链路是：TaskResult.error()
+  方法名写错 → 抛出 AttributeError → 被外层 except 捕获 → 主动 return 路径失效 → trace
+  重复、error 信息丢失
+
+### 3. 遗留项
+
+- session 连续改写未实现
+- 工具调用未实现
+
+### 4. 第5月对接点
+
+- session 连续改写，预计在检索与生成阶段补充
+- 工具调用，预计在文档切分阶段补充

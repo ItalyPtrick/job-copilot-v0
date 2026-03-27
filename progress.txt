@@ -1,21 +1,23 @@
 == 最后更新 ==
-2026-03-26
+2026-03-27 / Week 4 月末回归验收全部完成
 
-== 今天完成了 ==
-- Day 6 月末回归与验收
-- 步骤 1 完成：整理回归场景清单
-  - 成功主链路：jd_analyze / resume_optimize / self_intro_generate 各一条，含完整输入、期望输出、trace、error/retriever_context 字段
-  - 工具调用：当前版本未实现，第 5 月对接点（文档切分阶段）
-  - session 连续改写：设计已清晰（session ID / 历史窗口 / 带历史调 LLM），当前未实现，第 5 月对接点（检索与生成阶段）
-  - 异常场景：两条路径（无效任务类型主动 return / 运行时异常 except 捕获），各有样例
-- 验收文档：evaluation/week4_backend_acceptance.md
+== 已完成 ==
+- Day 6 月末回归与验收：全部 6 个步骤完成
+  - 步骤 1：整理回归场景清单（昨日完成）
+  - 步骤 2：成功主链路样例——jd_analyze / resume_optimize / self_intro_generate 三类任务结构全部符合预期
+  - 步骤 3：异常场景样例——路径1（无效任务类型）、路径2（运行时异常）均通过；发现并修复 bug：TaskResult.error() → TaskResult.from_error()
+  - 步骤 4：session 连续改写——三个组件均未实现，结论已写入验收文档
+  - 步骤 5：trace 可解释性检查——节点语义清晰，故障定位准确，通过
+  - 步骤 6：验收结论与遗留问题——已整理写入 evaluation/week4_backend_acceptance.md
+- 验收文档：evaluation/week4_backend_acceptance.md（已收口）
 
-== 下次继续 ==
-- 步骤 2：跑成功主链路样例（启动 FastAPI，用三类任务各跑一组，记录实际输出）
-- 步骤 3：跑异常场景样例
-- 步骤 4：session 连续改写（当前未实现，结论记录即可）
-- 步骤 5：trace 可解释性检查
-- 步骤 6：整理验收结论与遗留问题
-
-== 卡住的问题 ==
+== 进行中 ==
 - 无
+
+== 接下来 ==
+- 第 5 月：检索与生成阶段
+  - 实现 session 连续改写（session ID / 历史窗口 / 带历史调 LLM）
+  - 实现工具调用（RAG 检索，retriever_context 字段对接）
+
+== 已知 Bug ==
+- 无（TaskResult.error() 方法名错误已修复）
