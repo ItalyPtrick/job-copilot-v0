@@ -2,14 +2,14 @@
 
 ## Daily Plan Mentor 桥接规则
 
-以下入口**必须且只能**触发 `.claude/agents/daily_plan_mentor.md`，不得先调用其他 skill、普通讲解模式或其他 agent：
+以下入口**必须且只能**触发 `.claude/skills/daily_plan_mentor.md`，不得先调用其他 skill、普通讲解模式或其他 agent：
 
 **命中条件（满足任意一条即触发）：**
-- 消息中包含 `@daily-plan-mentor`（无论前后是否附带自然短语）
+- 消息中包含 `/daily-plan-mentor`（无论前后是否附带自然短语）
 - 消息独立包含以下自然短语之一：「开始今天的学习」「继续今天的学习」「继续今天计划」
 
 **触发动作：**
-立即读取 `.claude/agents/daily_plan_mentor.md` 并严格按其工作流程执行，跳过所有其他路由判断。
+立即读取 `.claude/skills/daily_plan_mentor.md` 并严格按其工作流程执行，跳过所有其他路由判断。
 
 ---
 
@@ -18,7 +18,9 @@
 每次新会话开始：
 1. 读取 `progress.txt` 了解当前进度和已知 Bug
 2. 如果 `lessons.md` 存在，读取历史教训并主动避免
-3. 用一句话确认：“已同步进度：[摘要]，准备开始。”
+3. 用一句话确认：”已同步进度：[摘要]，准备开始。”
+
+> **例外：Daily Plan Mentor 触发时**，跳过步骤 1（不读取 `progress.txt`）。学习状态由 `Today_Plan/*.md` 和 `Today_Plan/daily_progress.txt` 独立提供，详见 `.claude/skills/daily_plan_mentor.md`。
 
 ---
 
