@@ -101,14 +101,16 @@ pytest tests/ -v
 
 验收文档：`evaluation/week4_backend_acceptance.md`
 
+
 ## Daily Plan Coach Bridge
 
 - Repo-local learning guidance lives in `skills/daily-plan-coach/SKILL.md`.
-- When the user says any of the following, Codex must read `skills/daily-plan-coach/SKILL.md` first and follow that workflow:
+- The following project phrases are the only automatic bridge triggers for this skill:
   - `开始今天的学习`
   - `继续今天的学习`
   - `继续今天计划`
   - `进入 Daily Plan Coach 模式`
-- For these triggers, do not switch to another generic learning, teaching, or explanation skill before reading the repo-local skill file above.
+- When one of these triggers appears, Codex must read `skills/daily-plan-coach/SKILL.md` first, follow that workflow, and skip other generic learning, teaching, or explanation skills.
+- The repo-local skill file above is the source of truth for teaching behavior, step assessment, and progress-writing rules.
 - The study session state must come from `Today_Plan/*.md` and `Today_Plan/daily_progress.txt`.
 - Do not treat project-level `progress.txt` as the study session state file.

@@ -1,4 +1,4 @@
 interface:
   display_name: "Daily Plan Coach"
-  short_description: "Principle-first coaching from Today_Plan."
-  default_prompt: "Use $daily-plan-coach to read Today_Plan, continue today's study plan, quiz me on the underlying principles, and update progress."
+  short_description: "Mentor-first, coach-style study guidance from Today_Plan."
+  default_prompt: "开始今天的学习，并按 Today_Plan 继续当前 H3 步骤；先讲原理，再做两道逻辑检查，按代码型或理解型步骤验收，写入进度前先征求确认。"
