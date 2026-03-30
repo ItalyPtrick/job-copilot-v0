@@ -5,14 +5,15 @@
 - 1.1-register_tool：实现完毕，理解函数作为一等公民存入字典
 - 1.2-get_tools_for_llm：实现完毕，理解内层 schema 包装逻辑
 - 1.3-execute_tool：实现完毕，理解异常捕获和错误 dict 返回
+- 2.1-实现 analyze_jd_requirements：实现完毕，理解参数检查和 call_llm 调用
+- 2.2-注册并用脚本验证：__init__.py 注册完毕，test_tool.py 四项测试全部通过
 
 == 当前进度 ==
-- 停在 2.1-实现 analyze_jd_requirements 考核环节（Q1/Q2 未作答）
+- 今日计划全部完成
 
 == 本次暴露的薄弱点 ==
-- schema 双重包装问题：初次未意识到 register_tool 存整个 schema 会导致 get_tools_for_llm 双重包装
-- 骨架填空有卡顿：需要提示才能动手，对字典存函数的写法不熟
+- json.loads / json.JSONDecodeError 用法不熟，需要提示
+- 函数骨架填空仍需引导，对参数检查模式不够熟练
 
 == 待完成步骤 ==
-- 2.1-实现 analyze_jd_requirements（从考核 Q1/Q2 继续）
-- 2.2-注册并用脚本验证
+（无，今日计划全部完成）
