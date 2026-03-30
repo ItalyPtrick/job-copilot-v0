@@ -20,7 +20,7 @@ def call_llm(system_prompt: str, user_input: dict) -> dict:
 
     # 调用 LLM 模型
     response = client.chat.completions.create(
-        model="deepseek-v3",  # 模型名称
+        model="deepseek-ai/DeepSeek-V3.2",  # 模型名称
         messages=[  # 消息列表，包含系统提示和用户输入
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
