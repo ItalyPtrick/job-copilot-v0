@@ -1,4 +1,4 @@
 interface:
   display_name: "Daily Plan Coach"
-  short_description: "Mentor-first, coach-style study guidance from Today_Plan."
-  default_prompt: "开始今天的学习，并按 Today_Plan 继续当前 H3 步骤；先讲原理，再做两道逻辑检查，按代码型或理解型步骤验收，写入进度前先征求确认。"
+  short_description: "Simple daily plan coach copied from Claude and adapted for Codex project triggers."
+  default_prompt: "开始今天的学习，并按 Today_Plan 从当前 H3 继续；先讲再考，方向对就继续推进。"

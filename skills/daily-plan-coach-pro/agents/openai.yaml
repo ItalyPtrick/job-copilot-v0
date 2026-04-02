@@ -1,0 +1,4 @@
+interface:
+  display_name: "Daily Plan Coach Pro"
+  short_description: "Professional daily plan coach with deeper principle explanations."
+  default_prompt: "进入 Daily Plan Coach Pro 模式，并按 Today_Plan 从当前 H3 继续；先讲深层原理，再做两道逻辑检查。"

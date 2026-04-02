@@ -1,0 +1,4 @@
+interface:
+  display_name: "Daily Plan Coach Backup"
+  short_description: "Legacy backup of the previous Codex daily plan coach."
+  default_prompt: "Reference the legacy backup rules only when the user explicitly asks for the old Codex daily plan coach behavior."

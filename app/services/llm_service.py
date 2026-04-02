@@ -20,13 +20,13 @@ def call_llm(system_prompt: str, user_input: dict) -> dict:
 
     # 调用 LLM 模型
     response = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-V3.2",  # 模型名称
+        model="deepseek-v3",  # 模型名称
         messages=[  # 消息列表，包含系统提示和用户输入
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
         ],
     )
-    # 从模型响应中提取文本内容
+    # 从模型响应中提取文本内容(假设只返回文本)
     raw_text = response.choices[0].message.content
 
     # 容错：清理可能的 markdown 代码块包裹
@@ -39,3 +39,48 @@ def call_llm(system_prompt: str, user_input: dict) -> dict:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         return {"error": "模型返回格式异常，请重试", "raw": cleaned}
+
+
+# 调用 LLM 模型，支持工具调用，返回工具调用结果或文本结果
+def call_llm_with_tools(
+    system_prompt: str,
+    user_input: dict,
+    tools: list[dict],
+    messages_history: list[dict] | None = None,
+) -> dict:
+    # 将当前用户输入转换为 JSON 字符串
+    user_content = json.dumps(user_input, ensure_ascii=False)
+
+    # 组装消息列表：system + 历史消息 + 当前 user
+    messages = [{"role": "system", "content": system_prompt}]
+    if messages_history:
+        messages.extend(messages_history)
+    messages.append({"role": "user", "content": user_content})
+
+    # 调用 LLM 模型，并把可用工具一并传给模型
+    response = client.chat.completions.create(
+        model="deepseek-v3",
+        messages=messages,
+        tools=tools,
+    )
+
+    # 读取模型返回的消息对象
+    message = response.choices[0].message
+    # 如果模型决定调用工具，则返回工具调用信息
+    if message.tool_calls:
+        return {"type": "tool_calls", "tool_calls": message.tool_calls}
+
+    # 如果没有工具调用，则直接返回文本内容
+    return {"type": "text", "content": message.content}
+
+
+# 第二轮调用 LLM：传入完整消息列表，直接获取最终文本结果
+def call_llm_with_tool_result(messages: list[dict]) -> str:
+    # 使用已有 messages 直接调用模型
+    response = client.chat.completions.create(
+        model="deepseek-v3",
+        messages=messages,
+    )
+    # 返回模型生成的最终文本
+    return response.choices[0].message.content
+
