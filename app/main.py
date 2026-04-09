@@ -26,4 +26,4 @@ def handle_task(request: TaskRequest) -> JSONResponse:
     if result.status == "error":
         status_code = 400
 
-    return JSONResponse(content=result.model_dump(), status_code=status_code)
+    return JSONResponse(content=result.model_dump(mode="json"), status_code=status_code)

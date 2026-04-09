@@ -47,6 +47,7 @@ def call_llm_with_tools(
     user_input: dict,
     tools: list[dict],
     messages_history: list[dict] | None = None,
+    tool_choice: dict | str | None = None,
 ) -> dict:
     # 将当前用户输入转换为 JSON 字符串
     user_content = json.dumps(user_input, ensure_ascii=False)
@@ -58,17 +59,41 @@ def call_llm_with_tools(
     messages.append({"role": "user", "content": user_content})
 
     # 调用 LLM 模型，并把可用工具一并传给模型
-    response = client.chat.completions.create(
-        model="deepseek-v3",
-        messages=messages,
-        tools=tools,
-    )
+    request_params = {
+        "model": "deepseek-v3",
+        "messages": messages,
+        "tools": tools,
+    }
+    if tool_choice is not None:
+        request_params["tool_choice"] = tool_choice
+
+    response = client.chat.completions.create(**request_params)
 
     # 读取模型返回的消息对象
     message = response.choices[0].message
-    # 如果模型决定调用工具，则返回工具调用信息
+    # 如果模型决定调用工具，则返回可序列化的工具调用信息
     if message.tool_calls:
-        return {"type": "tool_calls", "tool_calls": message.tool_calls}
+        serialized_tool_calls = []
+        for tool_call in message.tool_calls:
+            serialized_tool_calls.append(
+                {
+                    "id": tool_call.id,
+                    "type": tool_call.type,
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments,
+                    },
+                }
+            )
+        return {
+            "type": "tool_calls",
+            "tool_calls": serialized_tool_calls,
+            "assistant_message": {
+                "role": "assistant",
+                "content": message.content or "",
+                "tool_calls": serialized_tool_calls,
+            },
+        }
 
     # 如果没有工具调用，则直接返回文本内容
     return {"type": "text", "content": message.content}

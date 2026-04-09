@@ -1,11 +1,11 @@
 == 当前执行位置 ==
-2.1-识别 tool_calls 响应
+2.3-手动验证链路（受当前中转站 API 不支持真实 tool_calls 阻塞）
 
 == 已完成步骤 ==
 - 1.1-实现 call_llm_with_tools
 - 1.2-实现 call_llm_with_tool_result
-
-== 待完成步骤 ==
 - 2.1-识别 tool_calls 响应
 - 2.2-执行工具并回填结果
-- 2.3-手动验证链路
+
+== 待完成步骤 ==
+- 2.3-手动验证链路（待切换到官方 DeepSeek API 后继续）

@@ -15,7 +15,7 @@ class ErrorDetail(BaseModel):
 class TaskResult(BaseModel):
     status: Literal["success", "error"]
     task_type: str
-    result: dict[str, Any] | None = None
+    result: Any | None = None
     error: ErrorDetail | None = None
     trace: list[TraceEvent] | None = None
     retriever_context: Optional[RetrieverContext] = None
@@ -23,7 +23,7 @@ class TaskResult(BaseModel):
     # 任务执行结果工厂类
     @classmethod
     def from_success(
-        cls, task_type: str, result: dict, trace: list[TraceEvent]
+        cls, task_type: str, result: Any, trace: list[TraceEvent]
     ) -> "TaskResult":
         return cls(status="success", task_type=task_type, result=result, trace=trace)
 
