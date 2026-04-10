@@ -105,10 +105,37 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
             # 依次执行工具调用，并将结果回填到消息列表中
             for tool_call in llm_result["tool_calls"]:
                 tool_name = tool_call["function"]["name"]
+                raw_arguments = tool_call["function"]["arguments"]
+                trace(
+                    trace_events,
+                    TraceNodeNames.TOOL_CALL,
+                    TraceStatus.START,
+                    f"准备调用工具: {tool_name}, 原始参数: {raw_arguments}",
+                )
                 try:
-                    tool_args = json.loads(tool_call["function"]["arguments"])
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"工具参数不是合法 JSON: {tool_name}") from e
+                    tool_args = json.loads(raw_arguments)
+                except (json.JSONDecodeError, TypeError) as e:
+                    tool_result = {
+                        "status": "error",
+                        "error": f"工具参数不是合法 JSON: {e}",
+                    }
+                    trace(
+                        trace_events,
+                        TraceNodeNames.TOOL_CALL,
+                        TraceStatus.ERROR,
+                        (
+                            f"工具调用失败: {tool_name}, 原始参数: {raw_arguments}, "
+                            f"参数解析异常: {e}"
+                        ),
+                    )
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call["id"],
+                            "content": json.dumps(tool_result, ensure_ascii=False),
+                        }
+                    )
+                    continue
                 tool_result = execute_tool(tool_name, tool_args)
                 messages.append(
                     {

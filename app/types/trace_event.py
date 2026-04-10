@@ -17,6 +17,8 @@ class TraceNodeNames:
     TASK_RECOGNITION = "任务识别完成"
     PROMPT_LOAD = "prompt 加载完成"
     LLM_CALL = "调用 LLM"
+    TOOL_CALL = "工具调用"
+    TOOL_RESULT = "工具结果回填"
     RESULT_AGGREGATION = "结果汇总完成"
 
 
@@ -25,3 +27,4 @@ class TraceStatus:
     START = "start"
     SUCCESS = "success"
     ERROR = "error"
+    SKIPPED = "skipped"

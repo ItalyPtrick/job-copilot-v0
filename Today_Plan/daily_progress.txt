@@ -1,13 +1,21 @@
-== 当前执行位置 ==
-2.3-手动验证链路（官方 DeepSeek API 已验证第一轮 tool_calls 成功，当前卡在第二轮 tool_result 回填后未正确收口）
+  == 当前执行位置 ==
+  Day 4 学习已开始：已完成第一刀（trace 枚举补齐）与第二刀（参数解析失败回填并继续），下一步进入第三刀（统一 execute_tool 返回协议）
 
-== 已完成步骤 ==
-- 1.1-实现 call_llm_with_tools
-- 1.2-实现 call_llm_with_tool_result
-- 2.1-识别 tool_calls 响应
-- 2.2-执行工具并回填结果
-- 2.3-验证官方 DeepSeek API 可用，且第一轮 tool_calls 能正常返回
+  == 已完成步骤 ==
+  - 1.1-实现 call_llm_with_tools
+  - 1.2-实现 call_llm_with_tool_result
+  - 2.1-识别 tool_calls 响应
+  - 2.2-执行工具并回填结果
+  - 2.3-验证官方 DeepSeek API 可用，且第一轮 tool_calls 能正常返回
+  - 2.3-定位第二轮 tool_result 回填后未收口的根因：第二轮 messages 漏传
+  - 2.3-修复第二轮 messages，补回 system_prompt
+  - 2.3-清理第二轮返回中的 markdown 代码块
+  - 2.3-手动验证完整链路跑通：LLM → 工具 → LLM → 返回
+  - 4.1-核对 Day 4 真实改动文件：trace_event.py / register.py / job_copilot_orchestrator.py / test_tool.py
+  - 4.1-完成第一刀：TraceNodeNames 补齐 TOOL_CALL / TOOL_RESULT，TraceStatus 补齐 SKIPPED
+  - 4.2-完成第二刀：orchestrator 中参数解析失败不再 raise，改为构造 error tool_result 回填并 continue
 
-== 待完成步骤 ==
-- 2.3-定位第二轮 tool_result 回填后，模型继续输出 DSML/function_calls 而非最终答案的根因
-- 2.3-确认根因属于消息拼装、第二轮调用策略，还是 prompt 指令
+  == 待完成步骤 ==
+  - 4.3-完成第三刀：统一 execute_tool 成功/失败返回协议
+  - 4.4-验证三类失败场景：工具不存在 / 参数解析失败 / 工具内部抛异常
+  - 4.5-补齐细粒度 trace：按需区分 TOOL_CALL 与 TOOL_RESULT 的 success/error 记录
