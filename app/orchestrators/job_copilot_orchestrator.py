@@ -98,6 +98,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
             llm_result["type"] == "tool_calls"
         ):  # 需要执行工具并回填结果后再次调用 LLM 获取最终结果
             messages = [
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
                 llm_result["assistant_message"],
             ]

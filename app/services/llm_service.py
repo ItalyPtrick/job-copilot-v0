@@ -10,6 +10,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_BASE_URL"),
 )
+MODEL_NAME = os.getenv("OPENAI_MODEL")
 
 
 # 调用 LLM 模型，返回模型生成的 JSON 字符串
@@ -20,7 +21,7 @@ def call_llm(system_prompt: str, user_input: dict) -> dict:
 
     # 调用 LLM 模型
     response = client.chat.completions.create(
-        model="deepseek-v3",  # 模型名称
+        model=MODEL_NAME,  # 使用环境变量中指定的模型
         messages=[  # 消息列表，包含系统提示和用户输入
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
@@ -60,12 +61,14 @@ def call_llm_with_tools(
 
     # 调用 LLM 模型，并把可用工具一并传给模型
     request_params = {
-        "model": "deepseek-v3",
+        "model": MODEL_NAME,
         "messages": messages,
         "tools": tools,
     }
     if tool_choice is not None:
-        request_params["tool_choice"] = tool_choice
+        request_params["tool_choice"] = (
+            tool_choice  # 如果指定了工具选择，则传递给模型，告诉模型只能调用哪个工具
+        )
 
     response = client.chat.completions.create(**request_params)
 
@@ -103,9 +106,16 @@ def call_llm_with_tools(
 def call_llm_with_tool_result(messages: list[dict]) -> str:
     # 使用已有 messages 直接调用模型
     response = client.chat.completions.create(
-        model="deepseek-v3",
+        model=MODEL_NAME,
         messages=messages,
     )
-    # 返回模型生成的最终文本
-    return response.choices[0].message.content
 
+    raw_text = response.choices[0].message.content or ""
+    cleaned = raw_text.strip()
+
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[1]
+        cleaned = cleaned.rsplit("```", 1)[0]
+
+    # 返回模型生成的最终文本
+    return cleaned.strip()
