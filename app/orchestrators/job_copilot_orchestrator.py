@@ -137,18 +137,26 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
                     )
                     continue
                 tool_result = execute_tool(tool_name, tool_args)
+                if tool_result.get("status") == "error":
+                    trace(
+                        trace_events,
+                        TraceNodeNames.TOOL_CALL,
+                        TraceStatus.ERROR,
+                        f"工具调用失败: {tool_name}, 入参: {tool_args}, 出参: {tool_result}",
+                    )
+                else:
+                    trace(
+                        trace_events,
+                        TraceNodeNames.TOOL_RESULT,
+                        TraceStatus.SUCCESS,
+                        f"工具调用成功: {tool_name}, 入参: {tool_args}, 出参: {tool_result}",
+                    )
                 messages.append(
                     {
                         "role": "tool",
                         "tool_call_id": tool_call["id"],
                         "content": json.dumps(tool_result, ensure_ascii=False),
                     }
-                )
-                trace(
-                    trace_events,
-                    TraceNodeNames.RESULT_AGGREGATION,
-                    TraceStatus.SUCCESS,
-                    f"工具调用: {tool_name}, 入参: {tool_args}, 出参: {tool_result}",
                 )
             result = call_llm_with_tool_result(messages)
             trace(
