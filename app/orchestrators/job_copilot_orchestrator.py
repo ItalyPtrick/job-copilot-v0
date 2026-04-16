@@ -105,7 +105,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
             # 依次执行工具调用，并将结果回填到消息列表中
             for tool_call in llm_result["tool_calls"]:
                 tool_name = tool_call["function"]["name"]
-                raw_arguments = tool_call["function"]["arguments"]
+                raw_arguments = tool_call["function"]["arguments"]  # 提取工具调用的原始参数（JSON字符串）
                 trace(
                     trace_events,
                     TraceNodeNames.TOOL_CALL,
