@@ -4,8 +4,19 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.orchestrators.job_copilot_orchestrator import execute_task
 from app.types.task_result import TaskResult
+from contextlib import asynccontextmanager
+from app.database.connection import engine, Base
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时创建表（开发环境用，生产环境用 Alembic）
+    Base.metadata.create_all(bind=engine)
+    yield
+    # 关闭时清理（如需要)
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class TaskRequest(BaseModel):

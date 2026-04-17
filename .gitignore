@@ -1,4 +1,8 @@
 .env
+.obsidian/
+.obsidian/**
+.windsurf/
+.windsurf/**
 .serena/
 .serena/**
 .continue/
