@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。参考 [interview-guide](https://github.com/Snailclimb/interview-guide) 功能设计，用 Python 生态重新实现。
 
-当前阶段：**W1 数据层进行中**（D1-D5 已完成，D6 Redis 待开始）。后端骨架已验收（W4 收口）。
+当前阶段：**W1 数据层进行中**（D1-D6 已完成，D7 待开始）。后端骨架已验收（W4 收口）。
 
 ---
 
@@ -63,6 +63,7 @@ alembic downgrade base && alembic upgrade head   # 验证迁移可逆
 | `OPENAI_BASE_URL` | LLM API 地址（可选，用于代理/兼容端点） |
 | `OPENAI_MODEL` | 模型名称 |
 | `DATABASE_URL` | 数据库连接串，默认 `sqlite:///./job_copilot.db` |
+| `REDIS_URL` | Redis 连接串，默认 `redis://localhost:6379/0` |
 
 ---
 
