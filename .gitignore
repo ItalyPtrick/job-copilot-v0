@@ -7,11 +7,16 @@
 .serena/**
 .continue/
 .continue/**
+.cursor/
+.cursor/**
 .trae/
 .trae/**
 .qoder/
 .qoder/**
 skills-lock.json
+
+# Database
+job_copilot.db
 
 # Python cache
 __pycache__/

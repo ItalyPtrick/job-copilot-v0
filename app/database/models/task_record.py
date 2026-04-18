@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database.connection import Base
 
 
@@ -15,4 +15,4 @@ class TaskRecord(Base):
     error_type = Column(String(100))
     error_message = Column(String(500))
     trace = Column(JSON)  # 执行轨迹，便于排错。
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

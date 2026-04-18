@@ -1,8 +1,13 @@
 == 当前执行位置 ==
-
+W1-D6：Redis 概念 + 缓存封装 + 测试（准备开始）
 
 == 已完成步骤 ==
-
+W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
+W1-D2：SQLAlchemy 模型定义 + TaskRecord ✅
+W1-D3：Alembic 数据库迁移 ✅
+W1-D4：集成到 Orchestrator + FastAPI Lifespan ✅
+W1-D5：数据库单元测试 ✅
 
 == 待完成步骤 ==
-（无）
+W1-D6：Redis 概念 + 缓存封装 + 测试
+W1-D7：W1 回顾 + 集成验证
