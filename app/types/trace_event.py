@@ -1,6 +1,6 @@
 # trace_event.py
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -8,7 +8,7 @@ from typing import Optional
 class TraceEvent(BaseModel):
     node_name: str
     status: str
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     remark: Optional[str] = None
 
 
