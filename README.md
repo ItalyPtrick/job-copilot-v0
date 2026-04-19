@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 D6/D7 — 数据层（SQLite + SQLAlchemy + Alembic + Redis）已集成，任务执行结果可持久化，Redis session 缓存已完成
+> **当前进度**：W1 数据层基础能力已完成，已验证 SQLite / Alembic / Redis / `/task` 持久化链路；下一步从 `Today_Plan/W2/D1.md` 开始，进入知识库建模与 RAG 基础链路开发。
 
 ---
 
@@ -210,9 +210,15 @@ job-copilot-v0/
 │   ├── database/
 │   │   ├── __init__.py                  # 导出 engine, SessionLocal, Base, get_db
 │   │   ├── connection.py                # 数据库连接配置
+│   │   ├── crud/
+│   │   │   ├── __init__.py
+│   │   │   └── task_crud.py             # 任务记录查询封装
 │   │   └── models/
 │   │       ├── __init__.py
-│   │       └── task_record.py           # 任务执行历史模型
+│   │       ├── task_record.py           # 任务执行历史模型
+│   │       ├── knowledge.py             # W2 RAG 知识库骨架
+│   │       ├── interview.py             # W3 模拟面试骨架
+│   │       └── resume.py                # W4 简历分析骨架
 │   ├── services/
 │   │   ├── llm_service.py               # LLM 调用封装
 │   │   └── prompt_service.py            # 从 prompts/ 加载 Markdown

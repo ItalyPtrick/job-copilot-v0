@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。参考 [interview-guide](https://github.com/Snailclimb/interview-guide) 功能设计，用 Python 生态重新实现。
 
-当前阶段：**W1 数据层进行中**（D1-D6 已完成，D7 待开始）。后端骨架已验收（W4 收口）。
+当前阶段：**W1 数据层已完成**（D1-D7 已完成）。后端骨架已验收（W4 收口）。
 
 ---
 
@@ -15,6 +15,9 @@
 | LLM 调用 + Tool Calling | ✅ | `app/services/llm_service.py`, `app/tools/` |
 | Trace 执行轨迹（四节点） | ✅ | `app/types/trace_event.py` |
 | 数据持久化（SQLite + SQLAlchemy + Alembic） | ✅ | `app/database/`, `alembic/` |
+| CRUD 查询封装（按类型 / 最近任务） | ✅ | `app/database/crud/task_crud.py` |
+| Redis 验证 | ✅ 已验证可用 | `app/cache/redis_client.py`, `tests/test_redis.py` |
+| W2-W4 预留模型骨架 | ✅ 预留 | `app/database/models/knowledge.py`, `app/database/models/interview.py`, `app/database/models/resume.py` |
 | RAG 字段预留（`retriever_context`） | ✅ 预留 | `app/types/retriever_context.py` |
 | Streamlit 极简前端 | ✅ Demo | `ui/minimal_app.py` |
 
@@ -24,14 +27,7 @@
 
 ## 下一步计划
 
-详见 `docs/00-roadmap.md`。
-
-| 阶段 | 内容 | 对应文档 |
-|---|---|---|
-| Phase 1 剩余 | Redis session 缓存 + RAG 知识库（向量检索 + SSE 流式） | `01-database-and-persistence.md`, `02-rag-knowledge-base.md` |
-| Phase 2 | 模拟面试（出题 + 追问 + 评估）+ 简历智能分析 | `03-mock-interview.md`, `04-resume-analysis.md` |
-| Phase 3 | Docker Compose 部署 + 面试展示准备 | `06-deployment.md`, `07-interview-showcase.md` |
-| 加分项 | 语音面试（WebSocket + Whisper + edge-tts） | `05-voice-interview.md` |
+下一步：从 `Today_Plan/W2/D1.md` 开始，进入知识库建模与 RAG 基础链路开发。
 
 ---
 
