@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层基础能力已完成，W2-D1 已完成依赖安装、知识库模块目录搭建与 ChromaDB 向量库封装验证；下一步进入 `Today_Plan/W2/D2.md`，继续完成文档加载与分块。
+> **当前进度**：W1 数据层基础能力已完成，W2-D2 已完成向量数据库对比学习、检索策略理解与文档加载/分块验证；下一步进入 `Today_Plan/W2/D3.md`，继续完成 LangChain Chain 组合与 RAG 问答链。
 
 ---
 
@@ -220,7 +220,8 @@ job-copilot-v0/
 │   │   ├── __init__.py
 │   │   └── knowledge_base/
 │   │       ├── __init__.py
-│   │       └── vector_store.py          # W2-D1 向量库封装
+│   │       ├── vector_store.py          # W2-D1 向量库封装
+│   │       └── document_loader.py       # W2-D2 文档加载与分块
 │   ├── cache/
 │   │   └── redis_client.py              # Redis 客户端封装
 │   ├── database/
