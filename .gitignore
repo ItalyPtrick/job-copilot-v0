@@ -1,34 +1,51 @@
+# Secrets & local config
 .env
-.vscode/
-.vscode/**
-.obsidian/
-.obsidian/**
-.windsurf/
-.windsurf/**
-.serena/
-.serena/**
-.continue/
-.continue/**
-.cursor/
-.cursor/**
-.trae/
-.trae/**
-.qoder/
-.qoder/**
+.claude/settings.local.json
 skills-lock.json
 
-# Database
-job_copilot.db
-
-# Python cache
+# Python cache & virtualenv
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
 
-# Local IDE/agent settings
-.claude/settings.local.json
+# Test & coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE & agent directories
+.vscode/
+.obsidian/
+.windsurf/
+.serena/
+.continue/
+.cursor/
+.trae/
+.qoder/
+.cline/
+.idea/
+.claude/worktrees/
+.worktrees/
+
+# App runtime data
+job_copilot.db
 evaluation/.claude/
 data/chroma/
 data/uploads/
-.worktrees/
 docs/superpowers/
+
+# OS files
+.DS_Store
+Thumbs.db

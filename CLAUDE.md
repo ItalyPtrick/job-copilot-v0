@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层已完成，W2 正在推进知识库接入；项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层已完成，W2-D3 已完成最小 RAG 问答链；下一步进入 W2-D4 的文件上传、SSE 与知识库路由接入。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 
@@ -28,6 +28,7 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 - 聊天与 embedding 可以分别走不同的 OpenAI 兼容端点。
 - 若 embeddings 使用阿里云百炼兼容接口，`OpenAIEmbeddings` 需设置 `check_embedding_ctx_length=False`，避免 LangChain 默认预切分导致兼容接口入参不匹配。
 - 当前仓库实际接入的 embedding 模型是 `text-embedding-v4`。
+- RAG 问答链已落到 `app/modules/knowledge_base/rag_chain.py`，使用 LCEL 组合 `prompt | llm | parser`；流式版本当前仅输出文本，`sources` 由非流式返回。
 
 ---
 
@@ -43,6 +44,7 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 
 1. "是否要帮你更新 `Today_Plan/daily_progress.txt`？"
 2. "是否检查 `README.md` 和 `CLAUDE.md` 需不需要更新？"
+3. "是否检查今天形成的设计决策是否已同步到 `docs/design-decisions.md`？"
 
 ---
 
