@@ -33,3 +33,8 @@
 - **问题**：知识库文档格式不一，且 embedding 与检索都要求输入块大小可控、来源可追踪。
 - **方案**：在 `document_loader.py` 中先按扩展名选择 Loader，把 PDF、DOCX、TXT、Markdown 统一转成 `Document`，再用 `RecursiveCharacterTextSplitter` 按 `chunk_size=500`、`chunk_overlap=100` 递归分块，并为每个 chunk 补充 `chunk_index` 与 `source_file` 元数据。
 - **理由**：这套流程先统一格式，再统一切块粒度，能直接复用到后续向量化与检索；分块时优先保留段落和句子边界，只有超长内容才继续细分，既减少语义断裂，也方便命中后回看文件名与块序号。
+
+### W2-D3 RAG 问答链输出边界
+- **问题**：RAG 问答链需要明确非流式、流式与来源信息的职责边界，避免接口层和前端对返回结构产生误解。
+- **方案**：`rag_query()` 在无检索结果时直接短路，返回固定兜底文案和空 `sources`；`rag_query_stream()` 当前只输出文本 chunk，不在流式路径返回 `sources`；`sources` 仅由检索层的 `Document` 元数据构造，字段保持为 `content`、`source_file`、`chunk_index`。
+- **理由**：这样可以保持流式链路轻量、来源信息稳定可追溯，并避免把模型生成内容和引用元数据耦合在一起，方便后续在 D4 路由层单独扩展 SSE 事件结构。

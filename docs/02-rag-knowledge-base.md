@@ -265,7 +265,7 @@ def rag_query(collection_name: str, question: str, top_k: int = 5):
         "sources": [
             {
                 "content": doc.page_content[:200],
-                "source": doc.metadata.get("source_file", "unknown"),
+                "source_file": doc.metadata.get("source_file", "unknown"),
                 "chunk_index": doc.metadata.get("chunk_index", -1),
             }
             for doc in docs
