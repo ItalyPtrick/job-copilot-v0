@@ -30,3 +30,5 @@ __pycache__/
 evaluation/.claude/
 data/chroma/
 data/uploads/
+.worktrees/
+docs/superpowers/
