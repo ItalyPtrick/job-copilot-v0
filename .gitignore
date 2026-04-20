@@ -28,3 +28,5 @@ __pycache__/
 # Local IDE/agent settings
 .claude/settings.local.json
 evaluation/.claude/
+data/chroma/
+data/uploads/

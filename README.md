@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层基础能力已完成，已验证 SQLite / Alembic / Redis / `/task` 持久化链路；下一步从 `Today_Plan/W2/D1.md` 开始，进入知识库建模与 RAG 基础链路开发。
+> **当前进度**：W1 数据层基础能力已完成，W2-D1 已完成依赖安装、知识库模块目录搭建与 ChromaDB 向量库封装验证；下一步进入 `Today_Plan/W2/D2.md`，继续完成文档加载与分块。
 
 ---
 
@@ -78,12 +78,21 @@ alembic upgrade head
 在项目根目录创建 `.env` 文件（不要提交到 Git）：
 
 ```
-OPENAI_API_KEY=your_openai_key_here
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o
+# chat
+OPENAI_API_KEY=your_chat_api_key
+OPENAI_BASE_URL=https://api.deepseek.com
+OPENAI_MODEL=deepseek-chat
+
+# embeddings
+OPENAI_EMBEDDING_API_KEY=your_embedding_api_key
+OPENAI_EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+OPENAI_EMBEDDING_MODEL=text-embedding-v4
+
 DATABASE_URL=sqlite:///./job_copilot.db
 REDIS_URL=redis://localhost:6379/0
 ```
+
+说明：当前项目支持聊天模型和向量模型分开配置。若使用阿里云百炼兼容 embeddings 接口，`app/modules/knowledge_base/vector_store.py` 中已将 `check_embedding_ctx_length` 设为 `False`，以适配字符串输入。
 
 ---
 
@@ -207,6 +216,13 @@ job-copilot-v0/
 │   ├── main.py                          # FastAPI 入口 + lifespan 自动建表
 │   ├── orchestrators/
 │   │   └── job_copilot_orchestrator.py  # 任务主流程 + trace + 持久化
+│   ├── modules/
+│   │   ├── __init__.py
+│   │   └── knowledge_base/
+│   │       ├── __init__.py
+│   │       └── vector_store.py          # W2-D1 向量库封装
+│   ├── cache/
+│   │   └── redis_client.py              # Redis 客户端封装
 │   ├── database/
 │   │   ├── __init__.py                  # 导出 engine, SessionLocal, Base, get_db
 │   │   ├── connection.py                # 数据库连接配置
@@ -235,8 +251,9 @@ job-copilot-v0/
 │   ├── env.py
 │   └── versions/
 ├── alembic.ini                           # Alembic 配置
+├── data/                                # 运行期数据目录（如 Chroma 持久化、上传文件）
 ├── job_copilot.db                        # SQLite 数据库（.gitignore）
-├── docs/                                # 学习/开发/面试文档（00-roadmap ~ 07-interview-showcase）
+├── docs/                                # 学习资料、开发记录与设计决策文档
 ├── evaluation/                          # 验收测试文档
 ├── tests/                               # pytest
 ├── scripts/                             # 辅助脚本（工具调试等）
