@@ -11,7 +11,7 @@ from app.modules.knowledge_base.rag_chain import (
 
 
 class FakeChain:
-    # 这里替掉真实 LLM，测试只关心 rag_query 的编排逻辑。
+    # 假链替掉真实 LLM，顺手卡住 question 和 context
     def invoke(self, payload):
         assert payload["question"] == "什么是 FastAPI"
         assert "FastAPI 是 Python 的 Web 框架" in payload["context"]
@@ -19,7 +19,7 @@ class FakeChain:
 
 
 class FakeStreamChain:
-    # 流式测试不碰真实模型，只验证 chunk 是否被原样透传。
+    # 流式假链只验证 chunk 透传
     async def astream(self, payload):
         assert payload["question"] == "什么是 FastAPI"
         assert "FastAPI 是 Python 的 Web 框架" in payload["context"]
@@ -27,7 +27,14 @@ class FakeStreamChain:
             yield chunk
 
 
-# 空检索结果时应该直接短路，证明 fallback 不依赖真实模型。
+class FakeTruncationChain:
+    # 这里返回固定 answer，截断断言才只受 sources 影响
+    def invoke(self, payload):
+        assert payload["question"] == "什么是 FastAPI"
+        return "用于测试截断长度。"
+
+
+# 空检索时直接走 fallback
 def test_rag_query_returns_fallback_when_no_docs(monkeypatch):
     monkeypatch.setattr(
         "app.modules.knowledge_base.rag_chain.search",
@@ -42,7 +49,7 @@ def test_rag_query_returns_fallback_when_no_docs(monkeypatch):
     }
 
 
-# 命中文档后，重点验证 answer 来自链调用，sources 来自检索元数据。
+# 链路负责 answer，检索元数据直接进 sources
 def test_rag_query_returns_answer_and_sources_when_docs_found(monkeypatch):
     docs = [
         Document(
@@ -72,9 +79,33 @@ def test_rag_query_returns_answer_and_sources_when_docs_found(monkeypatch):
     ]
 
 
-# 流式路径单独用异步测试，避免把 async generator 当同步迭代器误用。
+# 长文本 source 只留前 50 字预览
+def test_rag_query_truncates_source_content_to_50_chars(monkeypatch):
+    long_text = "Python后端开发经验，熟悉FastAPI、SQLAlchemy、Redis与异步任务编排。" * 2
+    docs = [
+        Document(
+            page_content=long_text,
+            metadata={"source_file": "resume.md", "chunk_index": 3},
+        )
+    ]
+
+    monkeypatch.setattr(
+        "app.modules.knowledge_base.rag_chain.search",
+        lambda collection_name, question, top_k=5: docs,
+    )
+    monkeypatch.setattr(
+        "app.modules.knowledge_base.rag_chain._build_chain",
+        lambda: FakeTruncationChain(),
+    )
+
+    result = rag_query("test_collection", "什么是 FastAPI")
+
+    assert result["sources"][0]["content"] == long_text[:50]
+    assert len(result["sources"][0]["content"]) == 50
+
+
 class TestRagQueryStream(IsolatedAsyncioTestCase):
-    # 空检索结果时应只产出一次 fallback，然后立刻结束。
+    # 空检索时只产出一次 fallback
     async def test_yields_fallback_when_no_docs(self):
         with patch("app.modules.knowledge_base.rag_chain.search", return_value=[]):
             chunks = []
@@ -83,7 +114,7 @@ class TestRagQueryStream(IsolatedAsyncioTestCase):
 
         assert chunks == [FALLBACK_ANSWER]
 
-    # 命中文档后，rag_query_stream 应原样透传底层 astream 的 chunk 序列。
+    # 命中后按底层 astream 顺序往外吐 chunk
     async def test_yields_chunks_when_docs_found(self):
         docs = [
             Document(

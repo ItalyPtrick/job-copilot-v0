@@ -234,51 +234,74 @@ def load_and_split(file_path: str) -> list:
 `app/modules/knowledge_base/rag_chain.py`：
 
 ```python
+import asyncio
+import os
+
+from dotenv import load_dotenv
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
+
 from app.modules.knowledge_base.vector_store import search
 
-RAG_PROMPT_TEMPLATE = """你是一个知识库问答助手。根据以下检索到的文档内容回答用户问题。
-如果文档中没有相关信息，请明确说明"根据现有知识库内容，我无法回答这个问题"。
+load_dotenv()
 
-检索到的文档内容：
+FALLBACK_ANSWER = "根据现有知识库内容，我无法回答这个问题"
+RAG_PROMPT_TEMPLATE = """你是一个知识库问答助手。
+请根据以下检索到的文档内容回答用户问题。
+如果文档中没有相关信息，请明确说明“根据现有知识库内容，我无法回答这个问题”。
+
+文档内容：
 {context}
 
-用户问题：{question}
+用户问题：
+{question}
+"""
+MODEL_NAME = os.getenv("OPENAI_MODEL")
 
-请基于文档内容回答："""
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True)
-prompt = ChatPromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
+def _build_context(documents):
+    return "\n\n---\n\n".join(document.page_content for document in documents)
 
-def rag_query(collection_name: str, question: str, top_k: int = 5):
-    """RAG 问答（非流式）"""
-    docs = search(collection_name, question, top_k)
-    context = "\n\n---\n\n".join([doc.page_content for doc in docs])
 
-    chain = prompt | llm | StrOutputParser()
-    answer = chain.invoke({"context": context, "question": question})
+def _build_sources(documents):
+    return [
+        {
+            "content": document.page_content[:50],
+            "source_file": document.metadata.get("source_file"),
+            "chunk_index": document.metadata.get("chunk_index"),
+        }
+        for document in documents
+    ]
 
-    return {
-        "answer": answer,
-        "sources": [
-            {
-                "content": doc.page_content[:200],
-                "source_file": doc.metadata.get("source_file", "unknown"),
-                "chunk_index": doc.metadata.get("chunk_index", -1),
-            }
-            for doc in docs
-        ],
-    }
+
+def _build_chain():
+    prompt = ChatPromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
+    llm = ChatOpenAI(model=MODEL_NAME, temperature=0, streaming=True)
+    parser = StrOutputParser()
+    return prompt | llm | parser
+
+
+def rag_query(collection_name: str, question: str, top_k: int = 5) -> dict:
+    documents = search(collection_name, question, top_k)
+    if not documents:
+        return {"answer": FALLBACK_ANSWER, "sources": []}
+
+    chain = _build_chain()
+    answer = chain.invoke({"context": _build_context(documents), "question": question})
+    return {"answer": answer, "sources": _build_sources(documents)}
+
 
 async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
-    """RAG 问答（SSE 流式）"""
-    docs = search(collection_name, question, top_k)
-    context = "\n\n---\n\n".join([doc.page_content for doc in docs])
+    documents = await asyncio.to_thread(search, collection_name, question, top_k)
+    if not documents:
+        yield FALLBACK_ANSWER
+        return
 
-    chain = prompt | llm | StrOutputParser()
-    async for chunk in chain.astream({"context": context, "question": question}):
+    chain = _build_chain()
+    async for chunk in chain.astream(
+        {"context": _build_context(documents), "question": question}
+    ):
         yield chunk
 ```
 
