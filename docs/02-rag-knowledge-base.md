@@ -134,7 +134,7 @@ app/
 |---|---|
 | `app/main.py` | 注册 `/kb` 路由蓝图 |
 | `app/types/retriever_context.py` | 已有！RAG 检索结果填入此结构 |
-| `app/orchestrators/job_copilot_orchestrator.py` | 支持在任务执行中注入 RAG 上下文 |
+| `app/orchestrators/job_copilot_orchestrator.py` | 预留 RAG 上下文注入扩展点，当前仍待完成 |
 | `requirements.txt` | 添加 langchain, chromadb 等 |
 | `.env` | 确认聊天模型读取 `OPENAI_*`，Embedding 读取 `OPENAI_EMBEDDING_*` |
 
@@ -157,16 +157,16 @@ class TaskResult(BaseModel):
 `app/modules/knowledge_base/vector_store.py`：
 
 ```python
-import chromadb
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 
 CHROMA_DIR = "./data/chroma"
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-v4",
+    check_embedding_ctx_length=False,
+)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-def get_vector_store(collection_name: str = "default") -> Chroma:
-    """获取或创建向量存储集合"""
+def get_vector_store(collection_name: str) -> Chroma:
     return Chroma(
         collection_name=collection_name,
         embedding_function=embeddings,
@@ -174,12 +174,14 @@ def get_vector_store(collection_name: str = "default") -> Chroma:
     )
 
 def add_documents(collection_name: str, documents: list):
-    """向集合中添加文档块"""
     store = get_vector_store(collection_name)
     store.add_documents(documents)
 
+def delete_source_file(collection_name: str, source_file: str):
+    store = get_vector_store(collection_name)
+    store._collection.delete(where={"source_file": source_file})
+
 def search(collection_name: str, query: str, top_k: int = 5) -> list:
-    """相似度检索"""
     store = get_vector_store(collection_name)
     return store.similarity_search(query, k=top_k)
 ```
@@ -324,7 +326,7 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
   - 直接读取 Chroma 当前 collection 状态
   - 返回数组：`[{"name": ..., "count": ...}]`
 
-其中 `/kb/query/stream` 当前只流式输出文本，不返回 `sources`；如果后续要在流式路径展示来源，应在路由层扩展 SSE 事件结构，而不是改变现有 `rag_query_stream()` 的职责。
+其中 `/kb/query/stream` 当前只流式输出文本，不返回 `sources`；如果后续要在流式路径展示来源，应在路由层扩展 SSE 事件结构，而不是改变现有 `rag_query_stream()` 的职责。当前 `source_file` 既用于 query 结果里的弱追溯展示，也用于 upload 失败后的向量补偿删除。
 
 ### Step 5：注册路由到主应用
 
@@ -400,14 +402,23 @@ def test_vector_store_add_and_search():
 
 ```python
 # tests/test_kb_api.py
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.main import app
 
-client = TestClient(app)
+from app.database.connection import get_db
+from app.modules.knowledge_base.router import router as kb_router
 
-def test_upload_and_query():
-    """端到端测试：上传文档 → 查询"""
-    # 1. 上传测试文档
+
+def build_test_client(session):
+    test_app = FastAPI()
+    test_app.include_router(kb_router)
+    test_app.dependency_overrides[get_db] = lambda: iter([session])
+    return TestClient(test_app)
+
+
+def test_upload_and_query(session):
+    client = build_test_client(session)
+
     with open("tests/fixtures/test_doc.txt", "rb") as f:
         response = client.post(
             "/kb/upload",
@@ -417,14 +428,15 @@ def test_upload_and_query():
     assert response.status_code == 200
     assert response.json()["chunks_count"] > 0
 
-    # 2. 查询
     response = client.post(
         "/kb/query",
-        data={"question": "文档内容是什么", "collection_name": "test"},
+        json={"question": "文档内容是什么", "collection_name": "test"},
     )
     assert response.status_code == 200
     assert "answer" in response.json()
 ```
+
+> 当前 `tests/test_kb_api.py` 走“测试专用 FastAPI app + 单独挂知识库 router”的方式，避免触发 `app.main` 的真实 lifespan；`/kb/query` 也固定使用 JSON body，而不是 form-data。
 
 ### 验证命令
 
