@@ -121,12 +121,11 @@ app/
 │   └── knowledge_base/
 │       ├── __init__.py
 │       ├── router.py           # FastAPI 路由（/kb）
-│       ├── service.py          # 知识库业务逻辑
 │       ├── vector_store.py     # ChromaDB 封装
 │       ├── document_loader.py  # 文档加载与分块
 │       └── rag_chain.py        # RAG 问答链
 ├── database/models/
-│   └── knowledge.py            # 知识库 & 文档 SQLAlchemy 模型
+│   └── knowledge.py            # 知识库上传记录 SQLAlchemy 模型
 ```
 
 ### 修改现有文件
@@ -137,7 +136,7 @@ app/
 | `app/types/retriever_context.py` | 已有！RAG 检索结果填入此结构 |
 | `app/orchestrators/job_copilot_orchestrator.py` | 支持在任务执行中注入 RAG 上下文 |
 | `requirements.txt` | 添加 langchain, chromadb 等 |
-| `.env` | 确认 `OPENAI_API_KEY` 也用于 Embedding |
+| `.env` | 确认聊天模型读取 `OPENAI_*`，Embedding 读取 `OPENAI_EMBEDDING_*` |
 
 ### 关键集成：RetrieverContext
 
@@ -229,6 +228,8 @@ def load_and_split(file_path: str) -> list:
     return chunks
 ```
 
+> 当前这组 metadata 只提供弱追溯：命中后能定位到“哪个保存后的文件、哪个块”，还没有把 upload record、document 级唯一标识或 chunk 强关联一并落地。后续如果要补强追溯，应在保留 `source_file`、`chunk_index` 的基础上，再结合 `knowledge_documents` / upload record 建立更稳定的文件级锚点。
+
 ### Step 3：RAG 问答链
 
 `app/modules/knowledge_base/rag_chain.py`：
@@ -307,93 +308,27 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 ### Step 4：FastAPI 路由
 
-`app/modules/knowledge_base/router.py`：
+`app/modules/knowledge_base/router.py` 已落地，当前接口形状如下：
 
-```python
-from fastapi import APIRouter, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
-from sse_starlette.sse import EventSourceResponse
-import shutil, os, uuid
+- `POST /kb/upload`
+  - 入参：`UploadFile` + `collection_name`（multipart/form-data）
+  - 行为：文件落盘到 `data/uploads/` → `load_and_split(...)` → `add_documents(...)` → 写入 `knowledge_documents`
+  - 成功返回：`status`、`filename`、`collection_name`、`chunks_count`
+- `POST /kb/query`
+  - 入参：JSON body（`question`、`collection_name`、`top_k`）
+  - 返回：`answer + sources`
+- `POST /kb/query/stream`
+  - 入参：JSON body（`question`、`collection_name`、`top_k`）
+  - 返回：SSE 事件流，协议固定为 `event: message` / `event: done`
+- `GET /kb/collections`
+  - 直接读取 Chroma 当前 collection 状态
+  - 返回数组：`[{"name": ..., "count": ...}]`
 
-router = APIRouter(prefix="/kb", tags=["知识库"])
-
-UPLOAD_DIR = "./data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-@router.post("/upload")
-async def upload_document(
-    file: UploadFile = File(...),
-    collection_name: str = Form(default="default"),
-):
-    """上传文档并向量化"""
-    # 保存文件
-    file_id = str(uuid.uuid4())
-    ext = Path(file.filename).suffix
-    save_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
-    with open(save_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    # 加载、分块、向量化
-    from app.modules.knowledge_base.document_loader import load_and_split
-    from app.modules.knowledge_base.vector_store import add_documents
-
-    chunks = load_and_split(save_path)
-    add_documents(collection_name, chunks)
-
-    return {
-        "status": "success",
-        "file_id": file_id,
-        "filename": file.filename,
-        "chunks_count": len(chunks),
-    }
-
-@router.post("/query")
-async def query_knowledge_base(
-    question: str = Form(...),
-    collection_name: str = Form(default="default"),
-):
-    """知识库问答（非流式）"""
-    from app.modules.knowledge_base.rag_chain import rag_query
-    result = rag_query(collection_name, question)
-    return result
-
-@router.post("/query/stream")
-async def query_knowledge_base_stream(
-    question: str = Form(...),
-    collection_name: str = Form(default="default"),
-):
-    """知识库问答（SSE 流式）"""
-    from app.modules.knowledge_base.rag_chain import rag_query_stream
-
-    async def event_generator():
-        async for chunk in rag_query_stream(collection_name, question):
-            yield {"event": "message", "data": chunk}
-        yield {"event": "done", "data": "[DONE]"}
-
-    return EventSourceResponse(event_generator())
-
-@router.get("/collections")
-async def list_collections():
-    """列出所有知识库集合"""
-    import chromadb
-    client = chromadb.PersistentClient(path="./data/chroma")
-    collections = client.list_collections()
-    return {
-        "collections": [
-            {"name": c.name, "count": c.count()} for c in collections
-        ]
-    }
-```
+其中 `/kb/query/stream` 当前只流式输出文本，不返回 `sources`；如果后续要在流式路径展示来源，应在路由层扩展 SSE 事件结构，而不是改变现有 `rag_query_stream()` 的职责。
 
 ### Step 5：注册路由到主应用
 
-修改 `app/main.py`：
-
-```python
-from app.modules.knowledge_base.router import router as kb_router
-
-app.include_router(kb_router)
-```
+`app/main.py` 已通过 `app.include_router(kb_router)` 完成知识库路由注册，`/docs` 中可见 `/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`。
 
 ### Step 6：集成到 Orchestrator（可选）
 
@@ -428,7 +363,7 @@ def _build_retriever_context(query: str, collection: str = "default") -> Retriev
 ### 单元测试
 
 ```python
-# tests/test_rag.py
+# tests/test_rag_chain.py
 import pytest
 from pathlib import Path
 
@@ -464,7 +399,7 @@ def test_vector_store_add_and_search():
 ### 集成测试
 
 ```python
-# tests/test_rag_api.py
+# tests/test_kb_api.py
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -495,18 +430,37 @@ def test_upload_and_query():
 
 ```bash
 # 运行 RAG 相关测试
-pytest tests/test_rag.py tests/test_rag_api.py -v
+pytest tests/test_rag_chain.py tests/test_kb_api.py -v
 
-# 手动验证：启动服务后用 curl 测试
+# 初始化本地数据库
+alembic upgrade head
+```
+
+### 手工验收口径
+
+- `/kb/upload`：以“HTTP 响应 + `knowledge_documents` 记录 + `data/uploads/` 落盘文件”三点交叉验证成功，不只看 Swagger UI 单一展示
+- `/kb/query`：返回 `answer + sources`
+- `/kb/query/stream`：返回 `event: message` 与 `event: done`
+- `/kb/collections`：能读到当前 Chroma collection 与 count
+
+### 手动验证示例
+
+```bash
 # 上传文档
 curl -X POST http://localhost:8000/kb/upload \
   -F "file=@your_document.pdf" \
   -F "collection_name=my_kb"
 
-# 查询
+# 查询（非流式）
 curl -X POST http://localhost:8000/kb/query \
-  -F "question=这个文档讲了什么" \
-  -F "collection_name=my_kb"
+  -H "Content-Type: application/json" \
+  -d '{"question":"这个文档讲了什么","collection_name":"my_kb","top_k":3}'
+
+# 查询（流式）
+curl -N -X POST http://localhost:8000/kb/query/stream \
+  -H "accept: text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"这个文档讲了什么","collection_name":"my_kb","top_k":3}'
 ```
 
 ---
@@ -521,7 +475,7 @@ curl -X POST http://localhost:8000/kb/query \
 > 3. 用 OpenAI Embedding 模型将每个块转为 1536 维向量，存入 ChromaDB
 > 4. 用户提问时，先将问题向量化，在 ChromaDB 中做 top-k 相似度搜索
 > 5. 将检索到的文档块拼接到 prompt 中，连同问题一起发给 LLM
-> 6. 通过 SSE 流式返回答案，同时附上来源引用
+> 6. 通过 SSE 流式返回答案文本；当前来源引用走非流式返回，后续如有需要再在路由层扩展 SSE 事件结构
 
 **Q: 你的分块策略怎么选的？chunk_size 和 overlap 怎么定？**
 > chunk_size=500 是经验值平衡：太小会丢失上下文，太大会引入噪声。overlap=100 保证分块边界处的信息不会被截断。RecursiveCharacterTextSplitter 会优先按段落、句子切割，尽量不在语义中间断开。实际项目中可以通过评估检索准确率来调优这两个参数。

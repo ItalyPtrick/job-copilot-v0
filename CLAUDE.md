@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层已完成，W2-D3 已完成最小 RAG 问答链；下一步进入 W2-D4 的文件上传、SSE 与知识库路由接入。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层已完成，W2-D4 已完成知识库路由接入与手工验收；当前已具备 `/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections` 四个接口。下一步按周计划继续 W2-D5 的 Orchestrator 集成与模型完善。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 

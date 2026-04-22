@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W2-D3（全部完成）
+W2-D4：4 个知识库路由已完成手工验收；当前进入文档收尾，并准备按周计划继续 D5
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -12,6 +12,18 @@ W2-D3（全部完成）
 - W2-D1：RAG 概念学习 + 安装依赖 + ChromaDB 封装 ✅
 - W2-D2：向量数据库对比 + 检索策略 + 文档加载与分块 ✅
 - W2-D3：LangChain Chain 组合 + RAG 问答链 ✅
+- W2-D4：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`、路由注册、手工验收 ✅
+
+== 今日已讲解 / 已完成内容 ==
+- D4 整体目标：把已有知识库能力接到 FastAPI 路由层
+- `/kb/upload` 的职责、数据形状变化与存储落点
+- `/kb/query` 与 `/kb/query/stream` 的职责边界、异步语义与 SSE 协议
+- `/kb/collections` 的观测口径：读取 Chroma 当前状态，而不是上传记录
+- 当前采用弱追溯：`source_file + chunk_index`
+- `knowledge_documents` 作为文件级 upload record 的定位
+- upload 首次 500 的根因定位：本地 `knowledge_documents` 表结构落后于 ORM 模型
+- upload 手工验收口径：响应 + 数据库记录 + 文件落盘 三点交叉验证
 
 == 待完成步骤 ==
-- W2-D4：FastAPI 文件上传 + SSE + 知识库路由 + 路由注册
+- 同步今日文档：`README.md`、`CLAUDE.md`、`docs/02-rag-knowledge-base.md`、`docs/design-decisions.md`
+- 按周计划继续 W2-D5：Orchestrator 集成 `_build_retriever_context`
