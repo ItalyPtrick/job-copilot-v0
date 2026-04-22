@@ -47,6 +47,13 @@ def add_documents(collection_name: str, documents: list[Document]) -> None:
     )  # 调用Chroma写入文档，内部做embedding计算和存储
 
 
+def delete_source_file(collection_name: str, source_file: str) -> None:
+    """按来源文件名删除指定 collection 中的文档块。"""
+    vector_store = get_vector_store(collection_name)
+    # upload 回滚按 chunk metadata 里的 source_file 删除；这里复用同一键，保证向量补偿与 loader 约定一致。
+    vector_store._collection.delete(where={"source_file": source_file})
+
+
 def search(collection_name: str, query: str, top_k: int = 5) -> list[Document]:
     """在指定 collection 中执行相似度检索。"""
     vector_store = get_vector_store(collection_name)
