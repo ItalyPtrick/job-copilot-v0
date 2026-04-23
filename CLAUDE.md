@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层已完成，W2-D4 已完成知识库路由接入与手工验收；当前已具备 `/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections` 四个接口。下一步按周计划继续 W2-D5 的 Orchestrator 集成与模型完善。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层 + W2 知识库核心链路均已完成（含 `/kb/*` 4 个接口、`knowledge_documents` 记录入库、Alembic 迁移、`test_kb_api.py` / `test_rag_chain.py` 测试套件）。W2 仅剩 Orchestrator 的 `_build_retriever_context`（将 RAG 注入 `/task` 响应的 `retriever_context` 字段）未做。W3 模拟面试模块计划已生成（`Today_Plan/W3/D1.md ~ D7.md`），等待实施。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 
@@ -52,6 +52,29 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 
 - 中文 Markdown 文件避免用终端追加、重定向或脚本直接拼接内容。
 - 优先使用编辑器直接修改，并确保保存为 UTF-8 编码。
+
+## 常用命令
+
+```bash
+uvicorn app.main:app --reload
+pytest tests/ -v
+alembic upgrade head
+```
+
+## 关键入口
+
+- FastAPI 入口：`app/main.py`
+- 任务 Orchestrator：`app/orchestrators/job_copilot_orchestrator.py`（`POST /task` 主流程 + trace + 持久化）
+- 知识库路由：`app/modules/knowledge_base/router.py`
+- RAG 问答链：`app/modules/knowledge_base/rag_chain.py`
+- 数据库连接：`app/database/connection.py`（导出 engine / SessionLocal / Base / get_db）
+- LLM 封装：`app/services/llm_service.py`（`call_llm` / `call_llm_with_tools` / `call_llm_with_tool_result`）
+
+## 测试定位
+
+- 知识库 API：`tests/test_kb_api.py`
+- RAG 问答链：`tests/test_rag_chain.py`
+- 数据库与 Redis：`tests/test_database.py`、`tests/test_redis.py`
 
 ## 注释风格提醒
 
