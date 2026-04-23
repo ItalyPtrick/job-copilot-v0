@@ -38,7 +38,7 @@ async def upload(
     # filename 面向接口响应与 upload record；source_file 对齐 chunk metadata，用作向量侧回滚锚点。
     filename = file.filename or save_path.name
     source_file = save_path.name
-    vectors_written = False
+    vectors_written = False  # 先标记向量未落库
 
     try:
         # 先落盘再交给 loader，避免一次性把上传内容全读进内存。
@@ -47,7 +47,7 @@ async def upload(
 
         chunks = document_loader.load_and_split(str(save_path))
         vector_store.add_documents(collection_name, chunks)
-        vectors_written = True
+        vectors_written = True  # 标记向量已落库
 
         record = KnowledgeDocument(
             filename=filename,
@@ -60,11 +60,11 @@ async def upload(
         )
         db.add(record)
         db.commit()
-    except ValueError as error:
+    except ValueError as error:  # 业务异常，返回400
         db.rollback()
         save_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=str(error)) from error
-    except Exception as error:
+    except Exception as error:  # 其他异常，返回500
         db.rollback()
         # 向量已落库但 DB 提交失败时，要按同一份 source_file metadata 做补偿删除，避免留下脏 chunk。
         if vectors_written:
