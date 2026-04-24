@@ -314,8 +314,9 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 - `POST /kb/upload`（D5 幂等改造后）
   - 入参：`UploadFile` + `collection_name`（multipart/form-data）
-  - 行为：文件落盘 → 计算 SHA-256 hash → 查 DB 是否已有 completed 同 hash 记录（命中则短路返回 `reused: true`）→ 写 `uploading` 占位记录（`IntegrityError` → 409）→ `load_and_split(...)` → `add_documents(...)` → 更新为 `completed`
+  - 行为：文件落盘 → 计算 SHA-256 hash → 查 DB 是否已有 completed 同 hash 记录（命中则短路返回 `reused: true`）→ 清理同 hash 的 `failed` 记录（释放唯一约束名额）→ 写 `uploading` 占位记录（`IntegrityError` → 409）→ `load_and_split(...)` → `add_documents(...)` → 更新为 `completed`
   - 成功返回：`status`、`filename`、`collection_name`、`chunks_count`、`reused`
+  - 计划增强：近重复确认（精确判重之后、`failed` 清理之前插入文件级 SimHash 检测），详见 `docs/superpowers/specs/2026-04-24-kb-near-duplicate-confirmation-design.md`
 - `POST /kb/query`
   - 入参：JSON body（`question`、`collection_name`、`top_k`）
   - 返回：`answer + sources`
@@ -510,7 +511,7 @@ curl -N -X POST http://localhost:8000/kb/query/stream \
 ### 能讲出的亮点
 
 - **完整 RAG 流水线**：文档上传 → 解析 → 分块 → 向量化 → 检索 → 生成
-- **上传幂等**：`(collection_name, file_hash)` 唯一约束 + 两阶段 commit 保证重复上传不浪费 embedding 费用；并发冲突走 409
+- **上传幂等**：`(collection_name, file_hash)` 唯一约束 + 两阶段 commit 保证重复上传不浪费 embedding 费用；并发冲突走 409；计划增加文件级 SimHash 近重复确认
 - **流式响应**：SSE 实现打字机效果，用户体验好
 - **与现有架构集成**：`_build_retriever_context` 按 payload 三要素按需注入 RAG 上下文到 TaskResult
 - **渐进式存储**：ChromaDB → pgvector，展示架构演进能力
