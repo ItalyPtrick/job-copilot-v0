@@ -211,3 +211,58 @@ def test_upgrade_add_knowledge_document_fields_keeps_existing_sqlite_rows():
         "status": "completed",
         "file_size": 0,
     }
+
+
+def test_upgrade_unique_constraint_dedup_preserves_completed_and_legacy_hashes():
+    # 验证 8cd951190b78 迁移：空 hash 填占位、优先保留 completed、唯一约束创建成功。
+    engine = create_engine("sqlite:///:memory:")
+    placeholder_migration = _load_migration_module(
+        "97eaf6c6be6f_add_placeholder_tables.py",
+        "placeholder_tables_migration",
+    )
+    fields_migration = _load_migration_module(
+        "8ec36703fa78_add_knowledge_document_fields.py",
+        "knowledge_fields_migration",
+    )
+    target_migration = _load_migration_module(
+        "8cd951190b78_add_kb_upload_unique_constraint_and_.py",
+        "unique_constraint_migration",
+    )
+
+    with engine.begin() as connection:
+        context = MigrationContext.configure(connection)
+        operations = Operations(context)
+        placeholder_migration.op = operations
+        fields_migration.op = operations
+        target_migration.op = operations
+
+        placeholder_migration.upgrade()
+        fields_migration.upgrade()
+
+        # 造脏数据：2 条空 hash（模拟旧逻辑回填）+ 1 组重复 hash（completed + failed）。
+        connection.execute(
+            text(
+                "INSERT INTO knowledge_documents "
+                "(filename, collection_name, file_path, file_hash, chunks_count, status, file_size, created_at) "
+                "VALUES "
+                "('a.txt', 'default', '/a1', '', 1, 'completed', 100, '2026-04-22 00:00:00'), "
+                "('b.txt', 'default', '/b1', '', 2, 'completed', 200, '2026-04-22 01:00:00'), "
+                "('c.txt', 'col2', '/c1', 'abc123', 3, 'completed', 300, '2026-04-22 02:00:00'), "
+                "('c.txt', 'col2', '/c2', 'abc123', 0, 'failed', 300, '2026-04-22 03:00:00')"
+            )
+        )
+
+        target_migration.upgrade()
+
+        rows = connection.execute(
+            text("SELECT id, filename, file_hash, status FROM knowledge_documents ORDER BY id")
+        ).mappings().all()
+
+    # 空 hash 应各自获得唯一占位，不被合并。
+    assert len(rows) == 3
+    assert rows[0]["file_hash"] == "legacy-1"
+    assert rows[1]["file_hash"] == "legacy-2"
+    # 重复 hash 组应保留 completed 而非 failed。
+    assert rows[2]["filename"] == "c.txt"
+    assert rows[2]["status"] == "completed"
+    assert rows[2]["file_hash"] == "abc123"
