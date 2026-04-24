@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库核心链路均已完成（含 `/kb/*` 4 个接口、`knowledge_documents` 记录入库、Alembic 迁移、`test_kb_api.py` / `test_rag_chain.py` 测试套件）。W2 仅剩 Orchestrator 的 `_build_retriever_context`（将 RAG 注入 `/task` 响应的 `retriever_context` 字段）未做。W3 模拟面试模块计划已生成（`Today_Plan/W3/D1.md ~ D7.md`），等待实施。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3 模拟面试模块计划已生成（`Today_Plan/W3/D1.md ~ D7.md`），等待实施。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 

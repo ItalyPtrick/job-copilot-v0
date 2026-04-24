@@ -134,7 +134,7 @@ app/
 |---|---|
 | `app/main.py` | 注册 `/kb` 路由蓝图 |
 | `app/types/retriever_context.py` | 已有！RAG 检索结果填入此结构 |
-| `app/orchestrators/job_copilot_orchestrator.py` | 预留 RAG 上下文注入扩展点，当前仍待完成 |
+| `app/orchestrators/job_copilot_orchestrator.py` | 新增 `_build_retriever_context`，成功路径注入 `retriever_context` |
 | `requirements.txt` | 添加 langchain, chromadb 等 |
 | `.env` | 确认聊天模型读取 `OPENAI_*`，Embedding 读取 `OPENAI_EMBEDDING_*` |
 
@@ -312,10 +312,10 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 `app/modules/knowledge_base/router.py` 已落地，当前接口形状如下：
 
-- `POST /kb/upload`
+- `POST /kb/upload`（D5 幂等改造后）
   - 入参：`UploadFile` + `collection_name`（multipart/form-data）
-  - 行为：文件落盘到 `data/uploads/` → `load_and_split(...)` → `add_documents(...)` → 写入 `knowledge_documents`
-  - 成功返回：`status`、`filename`、`collection_name`、`chunks_count`
+  - 行为：文件落盘 → 计算 SHA-256 hash → 查 DB 是否已有 completed 同 hash 记录（命中则短路返回 `reused: true`）→ 写 `uploading` 占位记录（`IntegrityError` → 409）→ `load_and_split(...)` → `add_documents(...)` → 更新为 `completed`
+  - 成功返回：`status`、`filename`、`collection_name`、`chunks_count`、`reused`
 - `POST /kb/query`
   - 入参：JSON body（`question`、`collection_name`、`top_k`）
   - 返回：`answer + sources`
@@ -328,34 +328,40 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 其中 `/kb/query/stream` 当前只流式输出文本，不返回 `sources`；如果后续要在流式路径展示来源，应在路由层扩展 SSE 事件结构，而不是改变现有 `rag_query_stream()` 的职责。当前 `source_file` 既用于 query 结果里的弱追溯展示，也用于 upload 失败后的向量补偿删除。
 
+> **D5 幂等改造要点**：upload 引入两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底并发竞争，`status=failed` 记录保留便于排查。`knowledge_documents` 新增 `updated_at`（`default` + `onupdate`）字段。
+
 ### Step 5：注册路由到主应用
 
 `app/main.py` 已通过 `app.include_router(kb_router)` 完成知识库路由注册，`/docs` 中可见 `/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`。
 
-### Step 6：集成到 Orchestrator（可选）
+### Step 6：集成到 Orchestrator（已完成）
 
-让现有的 `/task` 接口也能使用 RAG 上下文：
+`app/orchestrators/job_copilot_orchestrator.py` 中已实现 `_build_retriever_context`，仅当 payload 同时包含 `use_rag=True`、`rag_collection` 和 `rag_question` 时触发检索；检索失败不拖垮主任务，返回 `status="error"` 的空上下文。`TaskResult.from_success` 已扩展可选 `retriever_context` 参数。
 
 ```python
-# 在 execute_task 中，如果任务需要 RAG 上下文
-from app.modules.knowledge_base.vector_store import search
+from app.modules.knowledge_base.vector_store import search as kb_search
 from app.types.retriever_context import RetrieverContext, RetrieverChunk
 
-def _build_retriever_context(query: str, collection: str = "default") -> RetrieverContext:
-    docs = search(collection, query, top_k=3)
+def _build_retriever_context(payload: dict, top_k: int = 3) -> Optional[RetrieverContext]:
+    if not payload.get("use_rag"):
+        return None
+    collection_name = payload.get("rag_collection")
+    question = payload.get("rag_question")
+    if not collection_name or not question:
+        return None
+    try:
+        results = kb_search(collection_name, question, top_k=top_k)
+    except Exception:
+        return RetrieverContext(context_id=f"{collection_name}-{uuid.uuid4()}", status="error", chunks=[])
     chunks = [
         RetrieverChunk(
-            chunk_id=f"chunk_{i}",
-            source_title=doc.metadata.get("source_file", "unknown"),
+            chunk_id=f"{doc.metadata.get('source_file', '')}:{doc.metadata.get('chunk_index', 0)}",
+            source_title=str(doc.metadata.get("source_file", "")),
             content=doc.page_content,
         )
-        for i, doc in enumerate(docs)
+        for doc in results
     ]
-    return RetrieverContext(
-        context_id=str(uuid.uuid4()),
-        status="success",
-        chunks=chunks,
-    )
+    return RetrieverContext(context_id=f"{collection_name}-{uuid.uuid4()}", status="ok", chunks=chunks)
 ```
 
 ---
@@ -504,7 +510,8 @@ curl -N -X POST http://localhost:8000/kb/query/stream \
 ### 能讲出的亮点
 
 - **完整 RAG 流水线**：文档上传 → 解析 → 分块 → 向量化 → 检索 → 生成
+- **上传幂等**：`(collection_name, file_hash)` 唯一约束 + 两阶段 commit 保证重复上传不浪费 embedding 费用；并发冲突走 409
 - **流式响应**：SSE 实现打字机效果，用户体验好
-- **与现有架构集成**：检索结果填入已预留的 `RetrieverContext`，Orchestrator 可注入 RAG 上下文
+- **与现有架构集成**：`_build_retriever_context` 按 payload 三要素按需注入 RAG 上下文到 TaskResult
 - **渐进式存储**：ChromaDB → pgvector，展示架构演进能力
 - **多格式支持**：PDF/DOCX/MD/TXT 统一处理管道

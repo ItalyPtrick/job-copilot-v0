@@ -83,6 +83,26 @@ flowchart TD
 - **理由**：把知识库接口收口到独立 router，能保持 `main.py` 只负责应用入口和路由挂载，避免把知识库细节塞回主文件；同时先固定最小 SSE 协议，可以让流式链路稳定可测，不把文本流、来源信息和结束信号混成一个返回体。
 
 ### W2-D4 upload 手工调试与验收口径
-- **问题**：`/kb/upload` 第一次手工测试返回 500，后续又出现“Swagger UI 里看起来失败，但数据库记录和落盘文件显示实际成功”的现象，如果不区分“真实服务端失败”和“手工观测口径不可靠”，很容易误判 D4 仍被 upload 阻塞。
-- **方案**：先按服务端真实链路排查 upload 500。最终确认第一次稳定失败的根因是本地 `job_copilot.db` 中 `knowledge_documents` 仍停留在占位表结构，缺少 `filename`、`collection_name`、`file_path`、`file_hash`、`chunks_count`、`status`、`file_size` 等字段；修复路径采用 Alembic 对齐本地版本：先把数据库 `stamp` 到已存在的占位迁移，再生成并应用补字段迁移。修复后，将 upload 的手工验收口径固定为“以服务端可观测结果为准”：同时检查 HTTP 响应、`knowledge_documents` 记录、`data/uploads/` 落盘文件，而不是只看 Swagger UI 中的单一展示结果。
-- **理由**：这次故障先是标准的数据库 schema 落后问题，根因在 ORM 模型与本地实际表结构不一致；它修好后，服务端真实链路已经能成功完成“落盘 -> 分块 -> 向量写入 -> 记录入库”。Swagger UI 的示例 curl 只是文档展示，不是浏览器真实发包的精确回显；而 UI 中单次显示结果若和数据库记录、上传文件痕迹冲突，应优先相信服务端状态。把手工验收口径明确成“响应 + 数据库 + 文件系统”三点交叉验证，能避免把文档展示噪音误判成接口本身失败。
+- **问题**：`/kb/upload` 第一次手工测试返回 500，后续又出现"Swagger UI 里看起来失败，但数据库记录和落盘文件显示实际成功"的现象，如果不区分"真实服务端失败"和"手工观测口径不可靠"，很容易误判 D4 仍被 upload 阻塞。
+- **方案**：先按服务端真实链路排查 upload 500。最终确认第一次稳定失败的根因是本地 `job_copilot.db` 中 `knowledge_documents` 仍停留在占位表结构，缺少 `filename`、`collection_name`、`file_path`、`file_hash`、`chunks_count`、`status`、`file_size` 等字段；修复路径采用 Alembic 对齐本地版本：先把数据库 `stamp` 到已存在的占位迁移，再生成并应用补字段迁移。修复后，将 upload 的手工验收口径固定为"以服务端可观测结果为准"：同时检查 HTTP 响应、`knowledge_documents` 记录、`data/uploads/` 落盘文件，而不是只看 Swagger UI 中的单一展示结果。
+- **理由**：这次故障先是标准的数据库 schema 落后问题，根因在 ORM 模型与本地实际表结构不一致；它修好后，服务端真实链路已经能成功完成"落盘 -> 分块 -> 向量写入 -> 记录入库"。Swagger UI 的示例 curl 只是文档展示，不是浏览器真实发包的精确回显；而 UI 中单次显示结果若和数据库记录、上传文件痕迹冲突，应优先相信服务端状态。把手工验收口径明确成"响应 + 数据库 + 文件系统"三点交叉验证，能避免把文档展示噪音误判成接口本身失败。
+
+### W2-D5 上传幂等判重：(collection_name, file_hash) 唯一约束
+- **问题**：同一份文件重复上传会重复调用 embedding API（费用浪费）、写入重复向量记录、数据库出现多条相同 hash 的 upload record；如果不在数据层拦截，重复上传只能靠前端防抖或人工约束。
+- **方案**：在 `knowledge_documents` 表上新增 `UniqueConstraint("collection_name", "file_hash", name="uq_kb_collection_hash")`；upload 接口先计算文件 SHA-256 hash，再查 DB 是否已有 `status=completed` 的同 hash 记录——命中则直接返回 `reused: true` 并跳过 embedding；未命中再走正常写入流程。
+- **理由**：唯一约束把判重责任下沉到数据库层，即使应用层查询-写入之间存在并发窗口，约束依然能兜底。hash 前移到写入前计算，虽然多了一次文件读取，但相比 embedding API 调用的成本微乎其微。`reused` 字段显式返回让调用方知道本次上传是真实处理还是缓存命中。
+
+### W2-D5 两阶段 commit：uploading → completed
+- **问题**：D4 的 upload 流程是"先写向量、后写 DB 记录"，如果向量写入成功但 DB 提交失败，向量库里会留下脏数据需要补偿删除；但如果反过来"先写 DB、再写向量"，DB 记录会短暂处于 completed 状态而实际向量还没落地，造成查询时检索为空。
+- **方案**：引入两阶段 commit 模式。第一次 commit 写入 `status=uploading` 的占位记录；然后执行分块与向量写入；第二次 commit 把 status 更新为 `completed`。如果中间任何一步失败，走不同的补偿路径：`ValueError`（格式不支持）→ 删除占位 + 400；其他异常 → 保留 `status=failed` 记录 + 补偿删除向量 + 500。
+- **理由**：占位记录让唯一约束对并发请求立即生效（第二个请求的 commit 会触发 `IntegrityError` → 409）；`failed` 记录保留便于排查失败原因和后续批量清理，比直接删除更可观测。两阶段模式虽然多一次 DB 往返，但把"数据一致性窗口"从整个上传过程缩短到了两次 commit 之间，是当前 SQLite 单进程场景下最小代价的方案。
+
+### W2-D5 Orchestrator RAG 上下文注入
+- **问题**：`TaskResult` 已预留 `retriever_context` 字段，但 orchestrator 一直没有真正从知识库检索上下文填充它；如果不实现注入点，前端/下游永远拿不到 RAG 检索结果，知识库模块和任务系统之间就只有"各自独立"的状态。
+- **方案**：在 orchestrator 中新增 `_build_retriever_context(payload, top_k=3)` 函数，仅当 payload 同时包含 `use_rag=True`、`rag_collection` 和 `rag_question` 三个参数时才调用 `kb_search` 获取检索结果，构造 `RetrieverContext` 并注入 `TaskResult.from_success`（from_success 新增可选 `retriever_context` 参数）。检索失败不拖垮主任务，返回 `status="error"` 的空上下文。
+- **理由**：三要素齐全才触发，避免在不需要 RAG 的任务类型上产生无效检索开销和意外报错。检索失败降级而非阻塞，符合"辅助增强而非核心依赖"的 RAG 定位。`from_success` 接受可选参数而非全量重构，保持向后兼容。
+
+### W2-D5 failed 记录可重试：重传前清理 failed 占位
+- **问题**：`status=failed` 的记录占住 `(collection_name, file_hash)` 唯一约束名额；用户重传同文件时，新的 `uploading` 占位 commit 会触发 `IntegrityError` 并返回 409，形成"失败后永远无法重试"的死状态。
+- **方案**：在创建 `uploading` 占位之前，先 `DELETE` 同 `(collection_name, file_hash)` 且 `status=failed` 的记录并 commit，释放约束名额后再走正常两阶段流程。
+- **理由**：`failed` 记录的排查价值在"被新一次上传覆盖前"——一旦用户主动重传，说明已知晓失败并决定重试，旧 failed 记录不再有保留必要。先删后插比 `UPDATE` 更简单，也避免了复用旧记录的 `file_path` 字段指向已被清理的文件路径。
