@@ -102,11 +102,6 @@ flowchart TD
 - **方案**：在 orchestrator 中新增 `_build_retriever_context(payload, top_k=3)` 函数，仅当 payload 同时包含 `use_rag=True`、`rag_collection` 和 `rag_question` 三个参数时才调用 `kb_search` 获取检索结果，构造 `RetrieverContext` 并注入 `TaskResult.from_success`（from_success 新增可选 `retriever_context` 参数）。检索失败不拖垮主任务，返回 `status="error"` 的空上下文。
 - **理由**：三要素齐全才触发，避免在不需要 RAG 的任务类型上产生无效检索开销和意外报错。检索失败降级而非阻塞，符合"辅助增强而非核心依赖"的 RAG 定位。`from_success` 接受可选参数而非全量重构，保持向后兼容。
 
-### 近重复确认：文件级 SimHash 指纹 + 降级放行
-- **问题**：精确判重只能拦截 hash 完全相同的文件；用户上传仅修改少量内容的文档时，系统仍会重新切分、重新 embedding、在向量库中产生高度相似的重复内容。
-- **方案**：在精确判重之后、`failed` 记录清理之前，插入文件级近重复检测：从落盘文件提取纯文本 → 规范化 → 64-bit SimHash → 与同 collection 已完成记录比较汉明距离。命中阈值（≤ 3）时返回 HTTP 200 + `status: "confirmation_required"`，前端带 `confirm_upload=True` 重试后正常入库。近重复检测全程降级放行——文本提取、指纹生成或比较任一步失败只 log，不阻断上传。
-- **理由**：(1) 文件级指纹与现有 `KnowledgeDocument` 粒度一致，不引入 chunk 级模型；(2) 不用 HTTP 409 是因为 409 已被并发冲突 `IntegrityError` 占用；(3) 降级放行保证近重复检测不影响现有上传正确性（精确判重、两阶段 commit、向量回滚补偿均保持原有强约束）；(4) `similarity_fingerprint` 在 completed 提交时写入，可空设计兼容旧数据和提取失败场景；(5) 检测逻辑抽成独立模块，为未来预检查接口（B 方案）保留演进空间。详见 `docs/superpowers/specs/2026-04-24-kb-near-duplicate-confirmation-design.md`。
-
 ### W2-D5 failed 记录可重试：重传前清理 failed 占位
 - **问题**：`status=failed` 的记录占住 `(collection_name, file_hash)` 唯一约束名额；用户重传同文件时，新的 `uploading` 占位 commit 会触发 `IntegrityError` 并返回 409，形成"失败后永远无法重试"的死状态。
 - **方案**：在创建 `uploading` 占位之前，先 `DELETE` 同 `(collection_name, file_hash)` 且 `status=failed` 的记录并 commit，释放约束名额后再走正常两阶段流程。
