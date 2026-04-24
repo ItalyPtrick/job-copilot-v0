@@ -24,6 +24,8 @@ class KnowledgeDocument(Base):
     file_path = Column(String(500), nullable=False)
     # 文件内容 SHA-256，上传幂等判重基准，与 collection_name 组成唯一约束。
     file_hash = Column(String(64), nullable=False)
+    # 近重复指纹独立于 file_hash：同义改写/轻微改动可不同 hash、但仍可能需要人工确认。
+    similarity_fingerprint = Column(String(64), nullable=True)
     chunks_count = Column(Integer, nullable=False, default=0)
     # 状态机：uploading（占位中）→ completed（全部成功）/ failed（任一步失败）。
     status = Column(String(20), nullable=False, default="uploading")

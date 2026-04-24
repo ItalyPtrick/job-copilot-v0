@@ -312,10 +312,11 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 `app/modules/knowledge_base/router.py` 已落地，当前接口形状如下：
 
-- `POST /kb/upload`（D5 幂等改造后）
-  - 入参：`UploadFile` + `collection_name`（multipart/form-data）
-  - 行为：文件落盘 → 计算 SHA-256 hash → 查 DB 是否已有 completed 同 hash 记录（命中则短路返回 `reused: true`）→ 写 `uploading` 占位记录（`IntegrityError` → 409）→ `load_and_split(...)` → `add_documents(...)` → 更新为 `completed`
+- `POST /kb/upload`（D6 近重复确认增强后）
+  - 入参：`UploadFile` + `collection_name` + `confirm_upload`（multipart/form-data，默认 `false`）
+  - 行为：文件落盘 → 计算 SHA-256 hash → 查 DB 是否已有 completed 同 hash 记录（命中则短路返回 `reused: true`）→ 未命中时提取整份文本并生成 `similarity_fingerprint` → 若同 collection 命中近重复且本次未确认，则删除临时文件并返回 `status: confirmation_required` → 若未命中或 `confirm_upload=true`，再清理同 hash 的 `failed` 记录、写 `uploading` 占位记录（`IntegrityError` → 409）→ `load_and_split(...)` → `add_documents(...)` → 更新为 `completed`（同时写入 `similarity_fingerprint`）
   - 成功返回：`status`、`filename`、`collection_name`、`chunks_count`、`reused`
+  - 近重复确认返回：HTTP 200 + `status: confirmation_required`，body 含 `code`、`message`、`candidate`、`similarity_score`
 - `POST /kb/query`
   - 入参：JSON body（`question`、`collection_name`、`top_k`）
   - 返回：`answer + sources`
@@ -328,7 +329,7 @@ async def rag_query_stream(collection_name: str, question: str, top_k: int = 5):
 
 其中 `/kb/query/stream` 当前只流式输出文本，不返回 `sources`；如果后续要在流式路径展示来源，应在路由层扩展 SSE 事件结构，而不是改变现有 `rag_query_stream()` 的职责。当前 `source_file` 既用于 query 结果里的弱追溯展示，也用于 upload 失败后的向量补偿删除。
 
-> **D5 幂等改造要点**：upload 引入两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底并发竞争，`status=failed` 记录保留便于排查。`knowledge_documents` 新增 `updated_at`（`default` + `onupdate`）字段。
+> **D5/D6 upload 关键语义**：upload 先保留文件级精确判重（`(collection_name, file_hash)` 唯一约束 + `reused: true` 短路），再补近重复确认（`similarity_fingerprint` + `confirmation_required`）；正式继续上传时仍沿用两阶段 commit（`uploading` → `completed`），`status=failed` 记录只在确定继续上传时才清理。近重复检测失败或提取结果无有效词元时降级放行，不阻断主链。
 
 ### Step 5：注册路由到主应用
 
@@ -456,7 +457,7 @@ alembic upgrade head
 
 ### 手工验收口径
 
-- `/kb/upload`：以“HTTP 响应 + `knowledge_documents` 记录 + `data/uploads/` 落盘文件”三点交叉验证成功，不只看 Swagger UI 单一展示
+- `/kb/upload`：以“HTTP 响应 + `knowledge_documents` 记录 + `data/uploads/` 落盘文件”三点交叉验证成功，不只看 Swagger UI 单一展示；完全重复返回 `reused: true`；近重复返回 `status: confirmation_required`；带 `confirm_upload=true` 重试后才真正继续写入
 - `/kb/query`：返回 `answer + sources`
 - `/kb/query/stream`：返回 `event: message` 与 `event: done`
 - `/kb/collections`：能读到当前 Chroma collection 与 count
@@ -468,6 +469,12 @@ alembic upgrade head
 curl -X POST http://localhost:8000/kb/upload \
   -F "file=@your_document.pdf" \
   -F "collection_name=my_kb"
+
+# 若第一次返回 confirmation_required，确认后带 confirm_upload=true 重试
+curl -X POST http://localhost:8000/kb/upload \
+  -F "file=@your_document.pdf" \
+  -F "collection_name=my_kb" \
+  -F "confirm_upload=true"
 
 # 查询（非流式）
 curl -X POST http://localhost:8000/kb/query \

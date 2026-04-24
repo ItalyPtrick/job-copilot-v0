@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import shutil
 import uuid
 from pathlib import Path
@@ -12,11 +13,12 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.database.connection import get_db
 from app.database.models.knowledge import KnowledgeDocument
-from app.modules.knowledge_base import document_loader, rag_chain, vector_store
+from app.modules.knowledge_base import document_loader, near_duplicate, rag_chain, vector_store
 
 # 知识库模块的接口层，处理上传和查询请求
 router = APIRouter(prefix="/kb", tags=["knowledge_base"])
 UPLOAD_DIR = Path("./data/uploads")
+logger = logging.getLogger(__name__)
 
 
 # 路由层只收请求参数，真正的检索与生成仍复用 rag_chain。
@@ -30,6 +32,7 @@ class QueryRequest(BaseModel):
 async def upload(
     file: UploadFile = File(...),
     collection_name: str = Form(default="default"),
+    confirm_upload: bool = Form(default=False),
     db: Session = Depends(get_db),
 ):
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -65,6 +68,44 @@ async def upload(
             "chunks_count": existing.chunks_count,
             "reused": True,
         }
+
+    fingerprint: str | None = None
+    if confirm_upload:
+        try:
+            raw_text = near_duplicate.extract_text(str(save_path))
+            normalized_text = near_duplicate.normalize_text(raw_text)
+            fingerprint = near_duplicate.compute_fingerprint(normalized_text)
+        except Exception:
+            fingerprint = None
+            logger.warning("近重复指纹生成失败，降级继续上传", exc_info=True)
+    else:
+        try:
+            raw_text = near_duplicate.extract_text(str(save_path))
+            normalized_text = near_duplicate.normalize_text(raw_text)
+            fingerprint = near_duplicate.compute_fingerprint(normalized_text)
+            if fingerprint is not None:
+                candidate = near_duplicate.find_near_duplicate(
+                    db,
+                    collection_name=collection_name,
+                    similarity_fingerprint=fingerprint,
+                )
+                if candidate is not None:
+                    document, similarity_score = candidate
+                    save_path.unlink(missing_ok=True)
+                    return {
+                        "status": "confirmation_required",
+                        "code": "similar_document_confirmation_required",
+                        "message": "检测到同知识库中存在高度相似文档，请确认是否继续上传",
+                        "candidate": {
+                            "id": document.id,
+                            "filename": document.filename,
+                            "collection_name": document.collection_name,
+                        },
+                        "similarity_score": similarity_score,
+                    }
+        except Exception:
+            fingerprint = None
+            logger.warning("近重复检测失败，降级继续上传", exc_info=True)
 
     # 清理同 hash 的 failed 记录，释放唯一约束名额，允许重传。
     db.query(KnowledgeDocument).filter(
@@ -105,6 +146,7 @@ async def upload(
         # 两阶段 commit 第二阶段：真正落地 completed；onupdate 自动刷新 updated_at。
         record.status = "completed"
         record.chunks_count = len(chunks)
+        record.similarity_fingerprint = fingerprint
         db.commit()
     except ValueError as error:
         # 不支持的格式：占位记录没有继续保留价值，直接删除，避免误占唯一约束名额。

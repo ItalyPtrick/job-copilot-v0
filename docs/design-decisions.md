@@ -106,3 +106,8 @@ flowchart TD
 - **问题**：`status=failed` 的记录占住 `(collection_name, file_hash)` 唯一约束名额；用户重传同文件时，新的 `uploading` 占位 commit 会触发 `IntegrityError` 并返回 409，形成"失败后永远无法重试"的死状态。
 - **方案**：在创建 `uploading` 占位之前，先 `DELETE` 同 `(collection_name, file_hash)` 且 `status=failed` 的记录并 commit，释放约束名额后再走正常两阶段流程。
 - **理由**：`failed` 记录的排查价值在"被新一次上传覆盖前"——一旦用户主动重传，说明已知晓失败并决定重试，旧 failed 记录不再有保留必要。先删后插比 `UPDATE` 更简单，也避免了复用旧记录的 `file_path` 字段指向已被清理的文件路径。
+
+### W2-D6 近重复确认：`similarity_fingerprint` + `confirm_upload`
+- **问题**：仅靠 `(collection_name, file_hash)` 只能拦截完全相同的文件；文档只改少量内容时，系统仍会重新切分、重新 embedding、重新入库，既增加成本，也会在知识库里留下高度相似的重复内容。
+- **方案**：继续保留 `file_hash` 负责精确幂等；新增文件级 `similarity_fingerprint` 存储 64-bit SimHash。`/kb/upload` 在精确判重之后、清理 `failed` 记录之前执行近重复检查：命中则返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后才继续正式上传；`completed` 提交时同步写入 `similarity_fingerprint`。
+- **理由**：文件 hash 和近似指纹分别承担两层职责：前者保证完全重复不重复 embedding，后者把“高度相似但不完全相同”改成可解释、可确认的人机协作流程。复用 `/kb/upload` 的 `confirm_upload` 比新增独立确认接口改动更小，也更贴合当前前端尚未成型的状态。检测异常或空文本时降级放行，避免体验增强逻辑反过来破坏既有上传正确性。
