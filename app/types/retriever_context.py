@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 
+# 单条检索命中的标准化片段，供前端或下游直接消费。
 class RetrieverChunk(BaseModel):
     chunk_id: str
     source_title: str
@@ -11,6 +12,7 @@ class RetrieverChunk(BaseModel):
     range: str = ""
 
 
+# 一次检索返回的上下文容器，聚合同批命中片段与元信息。
 class RetrieverContext(BaseModel):
     context_id: str
     status: str

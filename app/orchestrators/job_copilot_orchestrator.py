@@ -1,10 +1,14 @@
 # job_copilot_orchestrator.py
 import json
+import uuid
+from typing import Optional
 
 import app.tools
+from app.modules.knowledge_base.vector_store import search as kb_search
 from app.services.prompt_service import get_prompt
 from app.services.llm_service import call_llm_with_tool_result, call_llm_with_tools
 from app.tools.register import execute_tool, get_tools_for_llm
+from app.types.retriever_context import RetrieverChunk, RetrieverContext
 from app.types.task_result import TaskResult
 from app.types.trace_event import TraceEvent, TraceNodeNames, TraceStatus
 from app.database.connection import SessionLocal
@@ -67,7 +71,7 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
             f"加载 prompt: {task_type}.md 成功",
         )
 
-        # 3. 调用 LLM
+        # 3. 调用 LLM 来决定是否需要工具调用
         current_node = TraceNodeNames.LLM_CALL
         tools = get_tools_for_llm()
         tool_choice = None
@@ -176,9 +180,14 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
         else:
             raise ValueError(f"未知的 LLM 返回类型: {llm_result['type']}")
 
+        # 在返回任务结果前按 payload 按需注入 retriever_context；不启用 RAG 的任务 TaskResult.retriever_context 仍保持 None。
+        retriever_context = _build_retriever_context(payload)
         # 返回任务执行结果
         result = TaskResult.from_success(
-            task_type=task_type, result=result, trace=trace_events
+            task_type=task_type,
+            result=result,
+            trace=trace_events,
+            retriever_context=retriever_context,
         )
         _save_task_record(result, payload)  # 保存任务记录到数据库
         return result
@@ -195,6 +204,40 @@ def execute_task(task_type: str, payload: dict) -> TaskResult:
         )
         _save_task_record(result, payload)
         return result
+
+
+# 仅当 payload 显式指定 use_rag=True + rag_collection + rag_question 时才触发检索；
+# 检索失败不拖垮主任务，返回 status="error" 的空上下文，由下游自行决定是否回退。
+def _build_retriever_context(
+    payload: dict, top_k: int = 3
+) -> Optional[RetrieverContext]:
+    if not payload.get("use_rag"):
+        return None
+    collection_name = payload.get("rag_collection")
+    question = payload.get("rag_question")
+    if not collection_name or not question:
+        return None
+    try:
+        results = kb_search(collection_name, question, top_k=top_k)
+    except Exception:
+        return RetrieverContext(
+            context_id=f"{collection_name}-{uuid.uuid4()}",
+            status="error",
+            chunks=[],
+        )
+    chunks = [
+        RetrieverChunk(
+            chunk_id=f"{doc.metadata.get('source_file', '')}:{doc.metadata.get('chunk_index', 0)}",
+            source_title=str(doc.metadata.get("source_file", "")),
+            content=doc.page_content,
+        )
+        for doc in results
+    ]
+    return RetrieverContext(
+        context_id=f"{collection_name}-{uuid.uuid4()}",
+        status="ok",
+        chunks=chunks,
+    )
 
 
 # 将任务执行结果保存到数据库

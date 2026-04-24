@@ -23,9 +23,20 @@ class TaskResult(BaseModel):
     # 任务执行结果工厂类
     @classmethod
     def from_success(
-        cls, task_type: str, result: Any, trace: list[TraceEvent]
+        cls,
+        task_type: str,
+        result: Any,
+        trace: list[TraceEvent],
+        retriever_context: Optional[RetrieverContext] = None,
     ) -> "TaskResult":
-        return cls(status="success", task_type=task_type, result=result, trace=trace)
+        # retriever_context 仅在 orchestrator 判定 use_rag 时注入；默认仍为 None，不破坏既有契约。
+        return cls(
+            status="success",
+            task_type=task_type,
+            result=result,
+            trace=trace,
+            retriever_context=retriever_context,
+        )
 
     # 错误任务执行结果工厂类
     @classmethod
