@@ -44,6 +44,7 @@ job_copilot.db
 evaluation/.claude/
 data/chroma/
 data/uploads/
+data/test-uploads/
 docs/superpowers/
 
 # OS files
