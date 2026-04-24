@@ -67,8 +67,12 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # render_as_batch=True 让 SQLite 上的 ALTER/CONSTRAINT 改动走 batch 模式（重建临时表），
+        # 否则 autogenerate 出来的 op.create_unique_constraint 等 DDL 会直接失败。
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=True,
         )
 
         with context.begin_transaction():
