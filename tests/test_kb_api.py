@@ -43,9 +43,10 @@ def app_client() -> Generator[tuple[TestClient, object], None, None]:
         finally:
             pass
 
+    # 将返回的真实 DB session 替换成测试 session
     test_app.dependency_overrides[get_db] = override_get_db
 
-    # 这里单独挂知识库路由，只保留 HTTP 契约与依赖覆写，不触发真实 app lifespan。
+    # 单独挂知识库路由，只保留 HTTP 契约与依赖覆写，不触发真实 app lifespan。
     with TestClient(test_app) as client:
         yield client, session
 
@@ -358,9 +359,7 @@ def _fingerprint(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
 
-def test_upload_near_duplicate_returns_confirmation_required(
-    app_client, monkeypatch
-):
+def test_upload_near_duplicate_returns_confirmation_required(app_client, monkeypatch):
     # 同 collection 命中近重复时，接口先回 confirmation_required，不进入 embedding。
     client, session = app_client
     candidate_fp = _fingerprint("normalized-guide")
@@ -379,8 +378,12 @@ def test_upload_near_duplicate_returns_confirmation_required(
     session.refresh(existing)
 
     monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Guide body")
-    monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "normalized-guide")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "normalize_text", lambda text: "normalized-guide"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
@@ -391,7 +394,9 @@ def test_upload_near_duplicate_returns_confirmation_required(
     monkeypatch.setattr(
         vector_store,
         "add_documents",
-        lambda collection_name, documents: add_calls.__setitem__("n", add_calls["n"] + 1),
+        lambda collection_name, documents: add_calls.__setitem__(
+            "n", add_calls["n"] + 1
+        ),
     )
 
     response = client.post(
@@ -416,7 +421,6 @@ def test_upload_near_duplicate_returns_confirmation_required(
     assert session.query(KnowledgeDocument).count() == 1
 
 
-
 def test_upload_near_duplicate_with_confirm_succeeds(app_client, monkeypatch):
     # 带 confirm_upload=True 重试时，近重复文档应继续正常上传并落指纹。
     client, session = app_client
@@ -435,8 +439,12 @@ def test_upload_near_duplicate_with_confirm_succeeds(app_client, monkeypatch):
     session.commit()
 
     monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Offer body")
-    monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "offer-normalized")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "normalize_text", lambda text: "offer-normalized"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
@@ -457,7 +465,9 @@ def test_upload_near_duplicate_with_confirm_succeeds(app_client, monkeypatch):
     monkeypatch.setattr(
         vector_store,
         "add_documents",
-        lambda collection_name, documents: add_calls.__setitem__("n", add_calls["n"] + 1),
+        lambda collection_name, documents: add_calls.__setitem__(
+            "n", add_calls["n"] + 1
+        ),
     )
 
     response = client.post(
@@ -484,7 +494,6 @@ def test_upload_near_duplicate_with_confirm_succeeds(app_client, monkeypatch):
     assert saved.similarity_fingerprint == candidate_fp
 
 
-
 def test_upload_near_duplicate_cross_collection_no_trigger(app_client, monkeypatch):
     # 近重复只在当前 collection 内比较；其他 collection 的候选不应触发确认。
     client, session = app_client
@@ -505,7 +514,9 @@ def test_upload_near_duplicate_cross_collection_no_trigger(app_client, monkeypat
 
     monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "FAQ body")
     monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "faq-normalized")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
@@ -521,7 +532,9 @@ def test_upload_near_duplicate_cross_collection_no_trigger(app_client, monkeypat
             )
         ],
     )
-    monkeypatch.setattr(vector_store, "add_documents", lambda collection_name, documents: None)
+    monkeypatch.setattr(
+        vector_store, "add_documents", lambda collection_name, documents: None
+    )
 
     response = client.post(
         "/kb/upload",
@@ -538,7 +551,6 @@ def test_upload_near_duplicate_cross_collection_no_trigger(app_client, monkeypat
     )
     assert saved.collection_name == "default"
     assert saved.similarity_fingerprint == candidate_fp
-
 
 
 def test_upload_near_duplicate_detection_failure_degrades(app_client, monkeypatch):
@@ -566,7 +578,9 @@ def test_upload_near_duplicate_detection_failure_degrades(app_client, monkeypatc
     monkeypatch.setattr(
         vector_store,
         "add_documents",
-        lambda collection_name, documents: add_calls.__setitem__("n", add_calls["n"] + 1),
+        lambda collection_name, documents: add_calls.__setitem__(
+            "n", add_calls["n"] + 1
+        ),
     )
 
     response = client.post(
@@ -583,7 +597,6 @@ def test_upload_near_duplicate_detection_failure_degrades(app_client, monkeypatc
     assert saved.status == "completed"
 
 
-
 def test_upload_near_duplicate_empty_text_degrades(app_client, monkeypatch):
     # 提取结果为空白时不应触发近重复确认；继续正常上传且指纹保持为空。
     client, session = app_client
@@ -593,7 +606,9 @@ def test_upload_near_duplicate_empty_text_degrades(app_client, monkeypatch):
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
-        lambda db, *, collection_name, similarity_fingerprint: find_calls.__setitem__("n", find_calls["n"] + 1),
+        lambda db, *, collection_name, similarity_fingerprint: find_calls.__setitem__(
+            "n", find_calls["n"] + 1
+        ),
     )
     monkeypatch.setattr(
         document_loader,
@@ -605,7 +620,9 @@ def test_upload_near_duplicate_empty_text_degrades(app_client, monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr(vector_store, "add_documents", lambda collection_name, documents: None)
+    monkeypatch.setattr(
+        vector_store, "add_documents", lambda collection_name, documents: None
+    )
 
     response = client.post(
         "/kb/upload",
@@ -620,7 +637,6 @@ def test_upload_near_duplicate_empty_text_degrades(app_client, monkeypatch):
     assert saved.similarity_fingerprint is None
 
 
-
 def test_upload_exact_duplicate_takes_priority_over_near_duplicate(
     app_client, monkeypatch
 ):
@@ -629,11 +645,15 @@ def test_upload_exact_duplicate_takes_priority_over_near_duplicate(
     candidate_fp = _fingerprint("same-content-normalized")
     near_duplicate_calls = {"n": 0}
 
-    monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Same content")
+    monkeypatch.setattr(
+        near_duplicate, "extract_text", lambda file_path: "Same content"
+    )
     monkeypatch.setattr(
         near_duplicate, "normalize_text", lambda text: "same-content-normalized"
     )
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
 
     def fake_find_near_duplicate(db, *, collection_name, similarity_fingerprint):
         near_duplicate_calls["n"] += 1
@@ -650,7 +670,9 @@ def test_upload_exact_duplicate_takes_priority_over_near_duplicate(
             )
         ],
     )
-    monkeypatch.setattr(vector_store, "add_documents", lambda collection_name, documents: None)
+    monkeypatch.setattr(
+        vector_store, "add_documents", lambda collection_name, documents: None
+    )
 
     files = {"file": ("same.txt", "same body", "text/plain")}
     data = {"collection_name": "default"}
@@ -665,7 +687,6 @@ def test_upload_exact_duplicate_takes_priority_over_near_duplicate(
     assert second.status_code == 200
     assert second.json()["reused"] is True
     assert near_duplicate_calls["n"] == 1
-
 
 
 def test_upload_near_duplicate_confirmation_cleans_temp_file(app_client, monkeypatch):
@@ -689,8 +710,12 @@ def test_upload_near_duplicate_confirmation_cleans_temp_file(app_client, monkeyp
     session.commit()
 
     monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Policy body")
-    monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "policy-normalized")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "normalize_text", lambda text: "policy-normalized"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
@@ -706,7 +731,6 @@ def test_upload_near_duplicate_confirmation_cleans_temp_file(app_client, monkeyp
     assert response.status_code == 200
     assert response.json()["status"] == "confirmation_required"
     assert list(upload_dir.glob("*")) == []
-
 
 
 def test_upload_near_duplicate_skips_records_without_fingerprint(
@@ -730,8 +754,12 @@ def test_upload_near_duplicate_skips_records_without_fingerprint(
     session.commit()
 
     monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Guide body")
-    monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "guide-normalized")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "normalize_text", lambda text: "guide-normalized"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     monkeypatch.setattr(
         near_duplicate,
         "find_near_duplicate",
@@ -747,7 +775,9 @@ def test_upload_near_duplicate_skips_records_without_fingerprint(
             )
         ],
     )
-    monkeypatch.setattr(vector_store, "add_documents", lambda collection_name, documents: None)
+    monkeypatch.setattr(
+        vector_store, "add_documents", lambda collection_name, documents: None
+    )
 
     response = client.post(
         "/kb/upload",
@@ -764,7 +794,6 @@ def test_upload_near_duplicate_skips_records_without_fingerprint(
     )
     assert saved.status == "completed"
     assert saved.similarity_fingerprint == candidate_fp
-
 
 
 def test_upload_failed_retry_with_near_duplicate_interaction(app_client, monkeypatch):
@@ -785,9 +814,15 @@ def test_upload_failed_retry_with_near_duplicate_interaction(app_client, monkeyp
     session.commit()
     session.refresh(existing)
 
-    monkeypatch.setattr(near_duplicate, "extract_text", lambda file_path: "Handbook body")
-    monkeypatch.setattr(near_duplicate, "normalize_text", lambda text: "handbook-normalized")
-    monkeypatch.setattr(near_duplicate, "compute_fingerprint", lambda text: candidate_fp)
+    monkeypatch.setattr(
+        near_duplicate, "extract_text", lambda file_path: "Handbook body"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "normalize_text", lambda text: "handbook-normalized"
+    )
+    monkeypatch.setattr(
+        near_duplicate, "compute_fingerprint", lambda text: candidate_fp
+    )
     near_duplicate_calls = {"n": 0}
 
     def fake_find_near_duplicate(db, *, collection_name, similarity_fingerprint):
@@ -874,7 +909,6 @@ def test_upload_failed_retry_with_near_duplicate_interaction(app_client, monkeyp
     assert records[1].filename == "handbook-v2.txt"
     assert records[1].status == "completed"
     assert records[1].similarity_fingerprint == candidate_fp
-
 
 
 def test_query_returns_answer_and_sources(app_client, monkeypatch):
@@ -976,7 +1010,7 @@ def test_query_stream_returns_sse_messages_and_done_event(app_client, monkeypatc
             "top_k": 3,
         },
     ) as response:
-        body = "".join(response.iter_text())
+        body = "".join(response.iter_text())  # 将全部 SSE 消息拼成一个字符串
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")

@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W2-D5：上传幂等全部完成（模型 + 迁移 + 路由重构 + Orchestrator 集成 + 测试 + 文档）；准备进入 D6
+W2-D6：测试理解 + 路由实现理解 + Alembic / 表结构核对已完成；W2 知识库阶段已收口，下一步可切到 W3
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -13,18 +13,16 @@ W2-D5：上传幂等全部完成（模型 + 迁移 + 路由重构 + Orchestrator
 - W2-D2：向量数据库对比 + 检索策略 + 文档加载与分块 ✅
 - W2-D3：LangChain Chain 组合 + RAG 问答链 ✅
 - W2-D4：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`、路由注册、手工验收 ✅
-- W2-D5：上传幂等（唯一约束 + 两阶段 commit + reused 短路 + 409 并发 + failed 记录）+ Orchestrator RAG 注入 + 测试 25 passed ✅
+- W2-D5：上传幂等（唯一约束 + 两阶段 commit + reused 短路 + 409 并发 + failed 记录）+ Orchestrator RAG 注入 ✅
+- W2-D6：读懂 `tests/test_rag_chain.py`、`tests/test_kb_api.py`，理解 `router.py` / `rag_chain.py` 关键实现，并完成 Alembic 迁移与 `knowledge_documents` 表结构人工核对 ✅
 
 == 今日已讲解 / 已完成内容 ==
-- knowledge.py 新增 `UniqueConstraint(collection_name, file_hash)` + `updated_at`（default + onupdate）
-- alembic/env.py 配置 `render_as_batch=True`，生成并应用 SQLite batch 迁移
-- router.py upload 重构：hash 前移 → completed 短路（reused:true）→ uploading 占位 → IntegrityError→409 → completed/failed 两阶段 commit
-- orchestrator 新增 `_build_retriever_context(payload)`，三要素齐全才触发检索
-- `TaskResult.from_success` 扩展可选 `retriever_context` 参数
-- test_kb_api.py 升级 2 个旧测试 + 新增 2 个（reused 短路 + 409 并发），全套 25 passed
-- design-decisions.md 追加 3 条 W2-D5 决策
+- 理解 `tests/test_rag_chain.py` 的 mock 思路，以及 fallback / answer + sources / stream 断言分别在验证什么
+- 理解 `tests/test_kb_api.py` 为什么使用测试专用 `FastAPI()` + `dependency_overrides[get_db]`
+- 理解 `/kb/query`、`/kb/query/stream`、`/kb/upload` 在 `router.py` 中如何落到真实实现
+- 理解 `reused=True` 表示命中完全重复文件后直接复用旧结果，跳过 loader / embedding / 入库
+- 理解知识库为什么要落数据库：需要持久化上传状态、判重、失败恢复与并发兜底
+- 完成 Alembic 迁移链人工核对，并确认 `knowledge_documents` 表已包含 `similarity_fingerprint`
 
 == 待完成步骤 ==
-- 完成文档同步收尾（02-rag-knowledge-base.md、D5/D6 计划、W2 周概览）
-- 自动 git review + 问题归纳 + Round 2 计划起草
-- 按周计划继续 W2-D6：测试编写 + W2 回顾准备
+- 进入 W3 学习前，可先决定是否需要同步更新 D6 学习文档与知识库说明文档
