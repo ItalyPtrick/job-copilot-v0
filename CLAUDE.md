@@ -27,6 +27,7 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 - 聊天模型读取 `OPENAI_*`，embedding 读取 `OPENAI_EMBEDDING_*`。
 - 聊天与 embedding 可以分别走不同的 OpenAI 兼容端点。
 - 若 embeddings 使用阿里云百炼兼容接口，`OpenAIEmbeddings` 需设置 `check_embedding_ctx_length=False`，避免 LangChain 默认预切分导致兼容接口入参不匹配。
+- 百炼 embedding API 单批上限 10 条，`OpenAIEmbeddings` 需同时设置 `chunk_size=10`，避免批量写入时超限报 400。
 - 当前仓库实际接入的 embedding 模型是 `text-embedding-v4`。
 - RAG 问答链已落到 `app/modules/knowledge_base/rag_chain.py`，使用 LCEL 组合 `prompt | llm | parser`；流式版本当前仅输出文本，`sources` 由非流式返回。
 

@@ -23,6 +23,7 @@ embeddings = OpenAIEmbeddings(
     api_key=EMBEDDING_API_KEY,
     base_url=EMBEDDING_BASE_URL,
     check_embedding_ctx_length=False,  # 百炼兼容 embeddings 接口接受字符串输入，不兼容 LangChain 默认的 token 预切分数组输入
+    chunk_size=10, # 百炼 API 单批最多 10 条
 )
 
 

@@ -111,3 +111,8 @@ flowchart TD
 - **问题**：仅靠 `(collection_name, file_hash)` 只能拦截完全相同的文件；文档只改少量内容时，系统仍会重新切分、重新 embedding、重新入库，既增加成本，也会在知识库里留下高度相似的重复内容。
 - **方案**：继续保留 `file_hash` 负责精确幂等；新增文件级 `similarity_fingerprint` 存储 64-bit SimHash。`/kb/upload` 在精确判重之后、清理 `failed` 记录之前执行近重复检查：命中则返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后才继续正式上传；`completed` 提交时同步写入 `similarity_fingerprint`。
 - **理由**：文件 hash 和近似指纹分别承担两层职责：前者保证完全重复不重复 embedding，后者把“高度相似但不完全相同”改成可解释、可确认的人机协作流程。复用 `/kb/upload` 的 `confirm_upload` 比新增独立确认接口改动更小，也更贴合当前前端尚未成型的状态。检测异常或空文本时降级放行，避免体验增强逻辑反过来破坏既有上传正确性。
+
+### W2-D7 百炼 Embedding API 批量上限适配（chunk_size=10）
+- **问题**：阿里云百炼 Embedding API 单次批量上限为 10 条；文档切分出 10 个以上 chunk 时，`add_documents` 批量发送全部 chunk，API 返回 400（batch size invalid），导致 upload 500。
+- **方案**：在 `OpenAIEmbeddings` 初始化中额外设置 `chunk_size=10`，让 LangChain 的 `embed_documents` 自动分批调用，每批不超过 10 条。
+- **理由**：`check_embedding_ctx_length=False` 只禁用了 token 预切分，不控制 `embed_documents` 的批量大小；`chunk_size` 是 LangChain `OpenAIEmbeddings` 独立的分批粒度参数，两者职责正交。设为 10 满足百炼接口限制，不影响 string 格式输入，也不破坏已有的 `check_embedding_ctx_length=False` 适配。
