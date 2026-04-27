@@ -116,3 +116,13 @@ flowchart TD
 - **问题**：阿里云百炼 Embedding API 单次批量上限为 10 条；文档切分出 10 个以上 chunk 时，`add_documents` 批量发送全部 chunk，API 返回 400（batch size invalid），导致 upload 500。
 - **方案**：在 `OpenAIEmbeddings` 初始化中额外设置 `chunk_size=10`，让 LangChain 的 `embed_documents` 自动分批调用，每批不超过 10 条。
 - **理由**：`check_embedding_ctx_length=False` 只禁用了 token 预切分，不控制 `embed_documents` 的批量大小；`chunk_size` 是 LangChain `OpenAIEmbeddings` 独立的分批粒度参数，两者职责正交。设为 10 满足百炼接口限制，不影响 string 格式输入，也不破坏已有的 `check_embedding_ctx_length=False` 适配。
+
+### W3-D2 模拟面试 Session 暂存到 Redis
+- **问题**：模拟面试是典型的多轮短生命周期状态：需要持续保存 `config`、当前状态、消息历史、已出题列表和当前题序；如果一开始就落数据库，会在 D2 阶段提前引入表结构设计、迁移和会话清理问题，拖慢链路验证。
+- **方案**：在 `app/modules/interview/session_manager.py` 中复用现有 `redis_client`，以 `interview:session:` 为 key 前缀，把 session 整体序列化成 JSON 写入 Redis；统一使用 `create_session` / `get_session` / `update_session` 管理，TTL 固定为 7200 秒，并要求 `current_question_index` 始终等于 `questions_asked` 长度，避免进度字段彼此失配。
+- **理由**：Redis 更适合这类高频读写、可过期、面向会话的中间状态；把整份 session 作为单对象存取，能先把 D2 的关注点收敛在“多轮会话是否能稳定创建/读取/更新”，而不是提前陷入关系型拆表。独立前缀也能和现有其它缓存 key 做清晰隔离，便于后续排查和批量清理；把题序和已出题数绑定成同一个不变量后，后续出题引擎可以直接信任 session 进度，不必额外兜底矫正。
+
+### W3-D2 面试方向先用 Markdown Skill 文件外置
+- **问题**：面试出题需要同时约束考察范围、难度分布和参考知识库；如果把这些配置直接硬编码进 `question_engine.py`，后续新增岗位方向时会变成改代码而不是加配置，扩展成本高，也不利于面试时说明系统的可配置性。
+- **方案**：先在 `app/skills/python_backend.md` 落地首个 Skill 文件，把考察范围、难度分布和参考知识库 collection 作为 Markdown 配置保存；Session 里仅保留 `skill` 标识，后续出题引擎再按该标识读取对应 Skill 内容。
+- **理由**：把”面试方向定义”和”出题执行逻辑”分开后，新增方向时只需补一个 Skill 文件，不必改核心流程代码；同时 Markdown 形态天然易读、易维护，也更适合当前学习阶段快速迭代和人工审查。

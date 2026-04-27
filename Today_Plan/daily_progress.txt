@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W3-D2：Skill 驱动出题 & 评估引擎概念 + Session 管理
+W3-D3：Skill 出题引擎 question_engine.py
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -17,9 +17,9 @@ W3-D2：Skill 驱动出题 & 评估引擎概念 + Session 管理
 - W2-D6：读懂 tests/test_rag_chain.py、tests/test_kb_api.py，理解 router.py / rag_chain.py 关键实现，并完成 Alembic 迁移与 knowledge_documents 表结构人工核对 ✅
 - W2-D7：面试复习（5 题 + 追问）+ 进阶概念（混合检索/Reranking/RAG评估）+ 端到端验收（upload/query/stream/collections）+ pytest 36 passed ✅
 - W3-D1：多轮对话 & 结构化输出概念 + 数据模型 schemas.py ✅
+- W3-D2：Skill 驱动出题 & 评估引擎概念 + `app/skills/python_backend.md` + Session 管理 `session_manager.py` + pytest 57 passed ✅
 
 == 待完成步骤 ==
-- W3-D2：Skill 驱动出题 & 评估引擎概念 + Session 管理
 - W3-D3：Skill 出题引擎 question_engine.py
 - W3-D4：评估引擎 evaluation.py
 - W3-D5：面试路由 router.py + 注册路由 + Redis 扩展
