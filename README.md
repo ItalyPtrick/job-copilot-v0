@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移、测试套件 36 passed / 1 skipped）。W3 模拟面试模块计划已生成（`Today_Plan/W3/D1.md ~ D7.md`），等待实施。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移、测试套件 36 passed / 1 skipped）。W3-D1 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，并落地模拟面试基础 schema（`InterviewStatus` / `InterviewConfig` / `InterviewQuestion` / `InterviewEvalItem` / `InterviewReport`）；下一步进入 W3-D2 Session 管理。
 
 ---
 
@@ -229,12 +229,17 @@ job-copilot-v0/
 │   │   └── job_copilot_orchestrator.py  # 任务主流程 + trace + 持久化
 │   ├── modules/
 │   │   ├── __init__.py
-│   │   └── knowledge_base/
-│   │       ├── __init__.py
-│   │       ├── vector_store.py          # W2-D1 向量库封装
-│   │       ├── document_loader.py       # W2-D2 文档加载与分块
-│   │       ├── near_duplicate.py        # W2-D6 近重复文本提取 / SimHash / 候选查找
-│   │       └── rag_chain.py             # W2-D3 RAG 问答链
+│   │   ├── interview/
+│   │   │   ├── __init__.py
+│   │   │   └── schemas.py               # W3-D1 模拟面试基础模型
+│   │   ├── knowledge_base/
+│   │   │   ├── __init__.py
+│   │   │   ├── vector_store.py          # W2-D1 向量库封装
+│   │   │   ├── document_loader.py       # W2-D2 文档加载与分块
+│   │   │   ├── near_duplicate.py        # W2-D6 近重复文本提取 / SimHash / 候选查找
+│   │   │   └── rag_chain.py             # W2-D3 RAG 问答链
+│   │   └── schedule/
+│   │       └── __init__.py              # W3-D1 预留包结构，D6 补实现
 │   ├── cache/
 │   │   └── redis_client.py              # Redis 客户端封装
 │   ├── database/

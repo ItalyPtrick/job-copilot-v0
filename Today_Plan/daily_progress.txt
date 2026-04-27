@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-全部完成
+W3-D2：Skill 驱动出题 & 评估引擎概念 + Session 管理
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -16,6 +16,12 @@
 - W2-D5：上传幂等（唯一约束 + 两阶段 commit + reused 短路 + 409 并发 + failed 记录）+ Orchestrator RAG 注入 ✅
 - W2-D6：读懂 tests/test_rag_chain.py、tests/test_kb_api.py，理解 router.py / rag_chain.py 关键实现，并完成 Alembic 迁移与 knowledge_documents 表结构人工核对 ✅
 - W2-D7：面试复习（5 题 + 追问）+ 进阶概念（混合检索/Reranking/RAG评估）+ 端到端验收（upload/query/stream/collections）+ pytest 36 passed ✅
+- W3-D1：多轮对话 & 结构化输出概念 + 数据模型 schemas.py ✅
 
 == 待完成步骤 ==
-（无，W2 已全部完成，下一步进入 W3 模拟面试模块）
+- W3-D2：Skill 驱动出题 & 评估引擎概念 + Session 管理
+- W3-D3：Skill 出题引擎 question_engine.py
+- W3-D4：评估引擎 evaluation.py
+- W3-D5：面试路由 router.py + 注册路由 + Redis 扩展
+- W3-D6：面试安排模块 + 测试编写
+- W3-D7：端到端验证 + 面试复习

@@ -41,7 +41,7 @@ class InterviewQuestion(BaseModel):
 
 # 使用 response_format 强制 JSON 输出
 response = client.beta.chat.completions.parse(
-    model="gpt-4o-mini",
+    model="deepseek-chat",
     messages=[...],
     response_format=InterviewQuestion,
 )
