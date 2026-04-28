@@ -131,3 +131,8 @@ flowchart TD
 - **问题**：原 W3 计划把 Skill Markdown 每次全文传给出题 prompt，并把追问简化成固定函数；这能快速打通链路，但会带来 token 重复、prompt 注意力稀释、追问节奏机械的问题，和“像真人面试官”的目标不完全一致。
 - **方案**：W3-D3 起把 Skill 从 Markdown 配置源转成运行时蓝图，出题时只传当前相关考点、难度 rubric、已问列表和已覆盖考点；D5 在 `/interview/answer` 后增加 planner，基于回答质量、追问次数上限和进度决定 `follow_up` / `next_question` / `complete`；D4 评估时按主问题轮次聚合主问题、初答和追问回答。
 - **理由**：当前阶段优先级调整为真实感 > 成本与稳定性 > 严格可控性。蓝图化能降低重复 token 并让 prompt 更聚焦；planner 能避免每题机械追问，让节奏更接近真实面试；按主问题轮次评估能避免把追问当成独立题重复计分。
+
+### W3-D3 Skill 蓝图化出题与结构化校验
+- **问题**：每轮出题都传完整 Skill Markdown 会重复消耗上下文，也不利于稳定控制难度、覆盖考点和避免重复题。
+- **方案**：`question_engine.py` 先用 `load_skill` 读取 Markdown，再用 `build_skill_blueprint` 提取 topics / difficulty_distribution / reference_collections / difficulty_rubric；`generate_question` 只注入蓝图摘要、目标难度 rubric、已问题目、已覆盖考点，并用 `InterviewQuestion` 校验返回结构。
+- **理由**：蓝图让 prompt 更聚焦；`difficulty_reason` 和 `assessment_focus` 为后续评估引擎提供难度解释与考察点；难度一致性和重复题拒绝放在应用层，能把不稳定的 LLM 输出限制在出题模块边界内。对应测试已覆盖 D3 出题引擎，并通过 session + question 回归。

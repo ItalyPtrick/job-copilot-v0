@@ -48,12 +48,14 @@ class InterviewConfig(BaseModel):
         return self
 
 
-# 单道题类：题干、类别、难度和追问提示。
+# 单道题类：题干、类别、难度、难度原因、追问提示和考察重点。
 class InterviewQuestion(BaseModel):
     question: str
     category: str
     difficulty: str
+    difficulty_reason: str
     follow_up_hint: str
+    assessment_focus: str
 
 
 # 单题评估类：题目、回答、分数、反馈和分类。

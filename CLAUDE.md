@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding；同 collection 命中近重复时返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后继续上传，并在 `completed` 时写入 `similarity_fingerprint`。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3-D1 + W3-D2 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema（`InterviewStatus` / `InterviewConfig` / `InterviewQuestion` / `InterviewEvalItem` / `InterviewReport`），新增 `app/skills/python_backend.md` Skill 定义，并实现基于 Redis 的 Session 管理（`create_session` / `get_session` / `update_session`，key 前缀 `interview:session:`，TTL 7200 秒）；下一步进入 W3-D3 出题引擎。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding；同 collection 命中近重复时返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后继续上传，并在 `completed` 时写入 `similarity_fingerprint`。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3-D1 ~ W3-D3 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 定义和 Skill 蓝图化出题引擎；W3-D3 定向测试 12 passed，session + question 回归 31 passed, 1 skipped；下一步进入 W3-D4 评估引擎 `evaluation.py`。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 
@@ -66,9 +66,10 @@ alembic upgrade head
 
 - FastAPI 入口：`app/main.py`
 - 任务 Orchestrator：`app/orchestrators/job_copilot_orchestrator.py`（`POST /task` 主流程 + trace + 持久化）
-- 模拟面试 Schema：`app/modules/interview/schemas.py`（W3-D1 已完成的基础数据模型）
+- 模拟面试 Schema：`app/modules/interview/schemas.py`（W3-D1 基础数据模型，`InterviewQuestion` 已包含 `difficulty_reason` / `assessment_focus`）
 - 面试 Session 管理：`app/modules/interview/session_manager.py`（W3-D2 已完成的 Redis Session CRUD）
 - 面试 Skill 定义：`app/skills/python_backend.md`（W3-D2 首个面试方向配置）
+- 面试出题引擎：`app/modules/interview/question_engine.py`（W3-D3 Skill 蓝图解析、结构化出题、追问生成）
 - 知识库路由：`app/modules/knowledge_base/router.py`
 - RAG 问答链：`app/modules/knowledge_base/rag_chain.py`
 - 数据库连接：`app/database/connection.py`（导出 engine / SessionLocal / Base / get_db）
@@ -79,6 +80,7 @@ alembic upgrade head
 - 知识库 API：`tests/test_kb_api.py`
 - RAG 问答链：`tests/test_rag_chain.py`
 - 面试 Session 管理：`tests/test_interview_session_manager.py`
+- 面试出题引擎：`tests/test_question_engine.py`
 - 数据库与 Redis：`tests/test_database.py`、`tests/test_redis.py`
 
 ## 注释风格提醒
