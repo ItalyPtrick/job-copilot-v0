@@ -35,7 +35,9 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 
 ## Daily Plan Mentor
 
-消息包含 `/daily-plan-mentor` 或“开始/继续今天的学习”时，读取 `.claude/skills/daily_plan_mentor.md` 执行。
+仅当用户显式调用 `/daily-plan-mentor` 时，使用 `.claude/skills/daily-plan-mentor/SKILL.md` 执行今日计划导师流程。
+
+“开始今天的学习”“继续今天计划”“按今天计划推进”等自然语言请求不自动触发该 Skill。
 
 ---
 
@@ -44,7 +46,7 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 当一天的计划全部完成后，主动提醒用户：
 
 1. "是否要帮你更新 `Today_Plan/daily_progress.txt`？"
-2. "是否检查 `README.md` 和 `CLAUDE.md` 需不需要更新？"
+2. "是否检查 `CLAUDE.md` 需不需要更新？仅当用户明确要求时再检查 `README.md`。"
 3. "是否检查今天形成的设计决策是否已同步到 `docs/design-decisions.md`？"
 
 ---

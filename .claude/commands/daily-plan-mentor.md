@@ -1,1 +1,1 @@
-用 Skill 工具调用 `daily_plan_mentor` skill，按其工作流程开始或继续今日学习。
+调用 `daily-plan-mentor` Skill，并按 `.claude/skills/daily-plan-mentor/SKILL.md` 的流程执行。
