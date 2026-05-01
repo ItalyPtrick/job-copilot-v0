@@ -17,22 +17,4 @@
 
 ---
 
-## 后续周次概要
-
-### W2 预告（Doc 02：RAG 知识库）
-- D1-D2：概念学习（RAG/Embedding/分块策略/向量数据库）+ Step 1-2
-- D3-D4：Step 3（RAG 问答链）+ Step 4（路由）
-- D5-D6：Step 5-6（注册路由 + Orchestrator 集成）+ SSE 调试
-- D7：测试 + 端到端验证 + 面试问题复习
-
-### W3 预告（Doc 03：模拟面试）
-Session 管理 → Skill 出题引擎 → 多轮追问 → 评估引擎 → 面试安排
-
-### W4 预告（Doc 04：简历分析）
-解析器 → LLM 分析 → Celery 异步 → PDF 导出 → 路由 + 测试
-
-### W5 预告（Doc 06 + UI）
-Dockerfile → docker-compose.yml → PostgreSQL 切换 → Streamlit 多页面
-
-### W6 预告（Doc 07 + 收尾）
-集成测试 → Bug 修复 → README → 架构图 → 面试排练
+> W1-W4 日计划见 `Today_Plan/Each_Week/`，W5-W6 待 W4 完成后展开。
