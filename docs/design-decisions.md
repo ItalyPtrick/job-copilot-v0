@@ -136,3 +136,23 @@ flowchart TD
 - **问题**：每轮出题都传完整 Skill Markdown 会重复消耗上下文，也不利于稳定控制难度、覆盖考点和避免重复题。
 - **方案**：`question_engine.py` 先用 `load_skill` 读取 Markdown，再用 `build_skill_blueprint` 提取 topics / difficulty_distribution / reference_collections / difficulty_rubric；`generate_question` 只注入蓝图摘要、目标难度 rubric、已问题目、已覆盖考点，并用 `InterviewQuestion` 校验返回结构。
 - **理由**：蓝图让 prompt 更聚焦；`difficulty_reason` 和 `assessment_focus` 为后续评估引擎提供难度解释与考察点；难度一致性和重复题拒绝放在应用层，能把不稳定的 LLM 输出限制在出题模块边界内。对应测试已覆盖 D3 出题引擎，并通过 session + question 回归。
+
+### W3-D4 评估引擎按主问题轮次评分
+- **问题**：D3 的追问策略让一道主问题下出现 0~N 条追问；如果把每条 assistant 问句等权处理，追问会被当成独立题目重复计分，评估结果失真。
+- **方案**：`evaluation.py` 以"主问题轮次"为评估单元——一道主问题 + 初答 + 追问链归为一个 turn，LLM 综合评分；消息通过 `metadata.question_type`（main/follow_up）和 `parent_question_id` 区分主问题和追问。评估引擎保持无状态（不写数据库），纯函数链路：`messages → _extract_interview_turns → evaluate_batch → generate_report`。
+- **理由**：按 turn 评估更接近真实面试评分逻辑——面试官不会把追问当新题打分，而是综合主答和追问表现给一个总评。无状态设计让 evaluation 可以独立测试、被路由层自由调用，不耦合 session 管理或数据库写入。LLM 解析失败时记录 warning 并跳过该批，不静默吞掉全部评分，保证可调试性。
+
+### W3-D4 InterviewMessageMetadata 消息契约
+- **问题**：评估引擎需要区分主问题、追问和用户回答，但 session messages 原始结构只有 role + content，缺少结构化标识。
+- **方案**：在 `schemas.py` 新增 `InterviewMessageMetadata` 模型，约定 assistant 消息带 `question_type`（main/follow_up）、`question_id`、`parent_question_id`、`category`、`difficulty`、`assessment_focus`；user 消息带 `answer_to_question_id`。D4 测试用此契约构造 fixture，D5 路由按同一契约写入 session。
+- **理由**：把消息结构契约提前固定在 schemas 中，让评估、出题和路由三个模块共享同一套数据协议，避免各模块各自猜测消息格式。metadata 字段全部可选（默认 None），不破坏现有 session_manager 的校验逻辑。
+
+### W3-D4 评估引擎消息三遍扫描模式
+- **问题**：评估引擎需要从 session messages 中提取结构化面试轮次（主问题 + 初答 + 追问链），但 messages 乱序且数据分散——主问题、追问、回答各自存储在不同的 message 记录中。
+- **方案**：采用三遍扫描模式：第一遍收集所有 `role="assistant" + question_type="main"` 的主问题记录；第二遍收集所有 `role="assistant" + question_type="follow_up"` 的追问记录；第三遍收集所有 `role="user" + answer_to_question_id` 的用户回答。最后按 `question_id` 和 `parent_question_id` 关联，把主问题、追问、回答组装成完整的 turn。
+- **理由**：messages 来自多轮交互，乱序是常态；一遍扫描无法正确关联分散的数据。分类索引后再组装，既能容错乱序，也能高效查询；同时为每个 turn 填充完整上下文（category、difficulty、assessment_focus），为后续 LLM 评估提供足够的语义信息。
+
+### W3-D4 LLM 解析失败降级跳过
+- **问题**：`evaluate_batch` 按 `_BATCH_SIZE=3` 分批调用 LLM 评估，当某批 LLM 返回格式错误或 `_parse_evaluations` 解析失败时，应该如何处理——是否要拖垮整体评估结果？
+- **方案**：当某批评估失败时，记录 `warning` 日志并 `continue` 跳过该批（不插入 `all_evaluations`），继续处理后续批次。所有成功解析的批次评估结果最后汇总到 `generate_report`。
+- **理由**：不同批次评估相互独立，某批失败不应阻塞其他批；记录 warning 便于后续排查 LLM 返回格式问题和调试提示语。同时用户仍能获得部分有效评估结果（如 12 题中前 3 题失败，仍保留 9 题结果），而不是因为格式错误导致全量失败。这种降级策略更符合"评估辅助而非关键路径"的定位。

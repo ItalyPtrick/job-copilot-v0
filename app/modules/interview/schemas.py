@@ -1,5 +1,6 @@
 from enum import Enum
 from math import isclose
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -12,6 +13,17 @@ class InterviewStatus(str, Enum):
     COMPLETED = "completed"
     EVALUATING = "evaluating"
     EVALUATED = "evaluated"
+
+
+# 面试消息元数据：区分主问题、追问和用户回答，供 evaluation 和路由共享。
+class InterviewMessageMetadata(BaseModel):
+    question_type: Literal["main", "follow_up"] | None = None
+    question_id: str | None = None
+    parent_question_id: str | None = None
+    answer_to_question_id: str | None = None
+    category: str | None = None
+    difficulty: str | None = None
+    assessment_focus: str | None = None
 
 
 # 面试配置类：技能方向、主问题数、追问次数和难度分布。

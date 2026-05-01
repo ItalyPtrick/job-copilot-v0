@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W3-D4：评估引擎 evaluation.py
+W3-D5：面试路由 router.py + 注册路由 + Redis 扩展
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -19,9 +19,9 @@ W3-D4：评估引擎 evaluation.py
 - W3-D1：多轮对话 & 结构化输出概念 + 数据模型 schemas.py ✅
 - W3-D2：Skill 驱动出题 & 评估引擎概念 + `app/skills/python_backend.md` + Session 管理 `session_manager.py` + pytest 57 passed ✅
 - W3-D3：Skill 蓝图化出题引擎 `question_engine.py` + 结构化出题 + 追问生成 + 题目校验 + 定向测试 12 passed + session/question 回归 31 passed, 1 skipped ✅
+- W3-D4：评估引擎 `evaluation.py`（轮次提取 + 分批评估 + 汇总报告）+ `InterviewMessageMetadata` 消息契约 + 定向测试 18 passed ✅
 
 == 待完成步骤 ==
-- W3-D4：评估引擎 evaluation.py
 - W3-D5：面试路由 router.py + 注册路由 + Redis 扩展
 - W3-D6：面试安排模块 + 测试编写
 - W3-D7：端到端验证 + 面试复习
