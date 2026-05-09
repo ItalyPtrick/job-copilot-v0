@@ -156,3 +156,23 @@ flowchart TD
 - **问题**：`evaluate_batch` 按 `_BATCH_SIZE=3` 分批调用 LLM 评估，当某批 LLM 返回格式错误或 `_parse_evaluations` 解析失败时，应该如何处理——是否要拖垮整体评估结果？
 - **方案**：当某批评估失败时，记录 `warning` 日志并 `continue` 跳过该批（不插入 `all_evaluations`），继续处理后续批次。所有成功解析的批次评估结果最后汇总到 `generate_report`。
 - **理由**：不同批次评估相互独立，某批失败不应阻塞其他批；记录 warning 便于后续排查 LLM 返回格式问题和调试提示语。同时用户仍能获得部分有效评估结果（如 12 题中前 3 题失败，仍保留 9 题结果），而不是因为格式错误导致全量失败。这种降级策略更符合"评估辅助而非关键路径"的定位。
+
+### W3-D5 自适应追问 planner 决策模型
+- **问题**：`/interview/answer` 需要决定"追问""下一题还是结束"，但出题引擎和评估引擎都不包含这个决策逻辑。
+- **方案**：新增 `interview_planner.py` 作为纯函数决策层，输入 session 状态 + 最新回答，输出 `next_action` + `next_difficulty` + `performance_signal`。决策规则：追问次数未满且回答非 strong → follow_up；否则 next_question；主问题出完且追问配额用完 → complete。难度调节基于最近表现信号，最多调一档。
+- **理由**：把决策逻辑从路由层抽离成独立纯函数，既方便单元测试（不依赖 Redis / LLM），也让 router.py 只负责 HTTP 编排。难度序列先按分布生成基础序列，再根据 performance_signal 微调，比完全随机出题更能模拟真实面试节奏。
+
+### W3-D5 session 扩展字段设计
+- **问题**：planner 需要知道当前主问题详情、已追问次数、已覆盖考点和最近表现，但 session 原始结构只有 messages / questions_asked / current_question_index。
+- **方案**：新增 4 个字段：`current_main_question`（当前主问题结构）、`current_follow_up_count`（已追问次数）、`covered_topics`（已覆盖考点列表）、`recent_performance`（最近 3 轮表现摘要）。`_normalize_session_data` 对这 4 个字段做向后兼容校验（缺失时给默认值）。评估完成后额外写入 `evaluation_report`，用于持久化 `/interview/evaluate` 返回的评分报告。
+- **理由**：这 4 个字段都是 planner 决策的输入，放在 session 中比每次从 messages 重新推导更高效。`recent_performance` 只保留最近 3 轮，避免 session 无限膨胀。向后兼容校验确保旧 session（D2/D3 创建的）不会因为缺少新字段而报错。
+
+### W3-D5 call_llm 统一异常处理策略
+- **问题**：`call_llm` 是出题、追问、单答评估、批量评估的共同底层；LLM API 调用可能抛出网络超时、限流、认证失败等异常，若每个调用方各自处理，异常分支会散落各处且覆盖不全。
+- **方案**：在 `call_llm` 内部统一捕获 `openai.APIError`、`APIConnectionError`、`RateLimitError`、`AuthenticationError` 四类异常，以及 `response.choices` 为空的情况，返回 `{"error": "...", "raw": ""}` 结构化错误对象。调用方只需检查返回值是否含 `error` 字段，不必各自写 try/except。
+- **理由**：把 LLM 基础设施异常收敛到一个出口，调用方可以按统一协议判断成功/失败，错误信息保留异常类型名便于日志排查。`raw` 字段为空字符串而非 None，避免下游 `str(None)` 式的隐性 bug。
+
+### W3-D5 路由层 session 回滚策略
+- **问题**：`/interview/answer` 处理链路较长（用户消息追加 → 单答评估 → planner 决策 → 出题/追问），中途任何一步抛异常时，session 已被部分修改（至少 user message 和 performance entry 已 append），若直接写回 Redis，下次请求会基于不一致状态继续。
+- **方案**：在进入 try 块之前，先拷贝 `original_messages` 和 `original_recent_performance`；异常发生时用这两份快照回滚 session 后再写回 Redis，然后抛 HTTP 503。
+- **理由**：session 是多步操作的共享可变状态，部分写入比不写更危险——planner 可能基于残留的 performance entry 做出错误决策。回滚到回答前的干净状态，用户可以重新提交同一回答，不会产生重复消息或题序错乱。

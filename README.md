@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D4 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、`app/skills/python_backend.md` Skill 定义、Skill 蓝图化出题引擎（`load_skill` / `build_skill_blueprint` / `generate_question` / `generate_follow_up`）和评估引擎（`evaluation.py`，按主问题轮次评分）；W3-D4 定向测试 18 passed，session + question 回归 31 passed, 1 skipped，下一步进入 W3-D5 面试路由。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D5 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner 和面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）；全量测试 120 passed, 2 skipped，下一步进入 W3-D6 面试安排模块。
 
 ---
 
@@ -24,7 +24,8 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - `retriever_context` 字段已通过 `_build_retriever_context` 实现按需注入（payload 含 `use_rag` + `rag_collection` + `rag_question` 时触发）
 - 已接入知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
 - 知识库上传具备两层保护：完全重复按 `file_hash` 幂等短路（`reused: true`），高度相似文档返回 `confirmation_required` 并等待 `confirm_upload=true` 重试
-- 模拟面试的 Session 当前已基于 Redis 管理：会话数据包含 `config` / `status` / `messages` / `questions_asked` / `current_question_index`，默认 TTL 为 2 小时
+- 模拟面试的 Session 当前已基于 Redis 管理：会话数据包含 `config` / `status` / `messages` / `questions_asked` / `current_question_index` / `current_main_question` / `current_follow_up_count` / `covered_topics` / `recent_performance` / `evaluation_report`，默认 TTL 为 2 小时
+- 模拟面试已提供 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个 API 端点；`/interview/answer` 通过自适应追问 planner 决定追问/下一题/完成，并根据回答表现动态调节难度
 - `app/skills/python_backend.md` 已作为首个面试方向 Skill 文件落地，用来约束考察范围、难度分布和参考知识库 collection
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
@@ -116,7 +117,8 @@ uvicorn app.main:app --reload
 启动成功后：
 - 根路径 `http://127.0.0.1:8000/` 返回 `"The server is running"`
 - 交互式文档：`http://127.0.0.1:8000/docs`
-- `/docs` 中可见知识库相关接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
+- `/docs` 中可见知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
+- `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
 
 **启动前端（可选）**
 
@@ -195,6 +197,25 @@ HTTP 状态码：成功 `200`，失败 `400`。
 
 > `tone` 可选值：`formal`（正式）/ `conversational`（对话式）
 
+**模拟面试接口**
+
+模拟面试通过独立的 `/interview/*` 路由提供，不走 `/task` 统一入口。
+
+1. 开始面试：`POST /interview/start`，返回 `session_id` + 第一道题
+2. 提交回答：`POST /interview/answer`，planner 自动决定追问/下一题/完成
+3. 获取评估：`POST /interview/evaluate`（面试完成后调用），返回评分报告
+
+```json
+// POST /interview/start
+{ "skill": "python_backend", "total_questions": 5, "follow_up_count": 1 }
+
+// POST /interview/answer
+{ "session_id": "<从 start 获取>", "answer": "候选人回答内容" }
+
+// POST /interview/evaluate
+{ "session_id": "<从 start 获取>" }
+```
+
 ---
 
 ## 其他注意事项
@@ -212,6 +233,8 @@ pytest tests/ -v
 
 面试出题引擎定向测试：`pytest tests/test_question_engine.py -v`
 面试评估引擎定向测试：`pytest tests/test_interview_evaluation.py -v`
+面试 Planner 定向测试：`pytest tests/test_interview_planner.py -v`
+面试路由定向测试：`pytest tests/test_interview_router.py -v`
 
 **知识库接口最小手工验收**
 
@@ -241,7 +264,9 @@ job-copilot-v0/
 │   │   │   ├── schemas.py               # W3-D1 模拟面试基础模型
 │   │   │   ├── session_manager.py       # W3-D2 Redis Session 管理
 │   │   │   ├── question_engine.py       # W3-D3 Skill 蓝图解析、结构化出题和追问生成
-│   │   │   └── evaluation.py            # W3-D4 评估引擎：轮次提取、分批评估、汇总报告
+│   │   │   ├── evaluation.py            # W3-D4 评估引擎：轮次提取、分批评估、汇总报告
+│   │   │   ├── interview_planner.py     # W3-D5 自适应追问决策（纯函数）
+│   │   │   └── router.py                # W3-D5 面试路由：/interview/start、/interview/answer、/interview/evaluate
 │   │   ├── knowledge_base/
 │   │   │   ├── __init__.py
 │   │   │   ├── vector_store.py          # W2-D1 向量库封装
