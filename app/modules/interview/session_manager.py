@@ -73,6 +73,35 @@ def _normalize_session_data(data: object) -> dict:
             "Interview session 的 'current_question_index' 必须是非负整数。"
         )
 
+    # 验证 current_main_question（可选，当前主问题结构）
+    current_main_question = data.get("current_main_question")
+    if current_main_question is not None and not isinstance(current_main_question, dict):
+        raise ValueError("Interview session 的 'current_main_question' 必须是字典或 None。")
+
+    # 验证 current_follow_up_count
+    current_follow_up_count = data.get("current_follow_up_count", 0)
+    if type(current_follow_up_count) is not int or current_follow_up_count < 0:
+        raise ValueError(
+            "Interview session 的 'current_follow_up_count' 必须是非负整数。"
+        )
+
+    # 验证 covered_topics
+    covered_topics = data.get("covered_topics", [])
+    if not isinstance(covered_topics, list):
+        raise ValueError("Interview session 的 'covered_topics' 必须是列表。")
+    if any(not isinstance(topic, str) for topic in covered_topics):
+        raise ValueError("Interview session 的 'covered_topics' 项必须是字符串。")
+
+    # 验证 recent_performance（元素结构由 planner 定义，这里只校验列表类型）
+    recent_performance = data.get("recent_performance", [])
+    if not isinstance(recent_performance, list):
+        raise ValueError("Interview session 的 'recent_performance' 必须是列表。")
+
+    # 验证 evaluation_report（评估完成后写入，可选）
+    evaluation_report = data.get("evaluation_report")
+    if evaluation_report is not None and not isinstance(evaluation_report, dict):
+        raise ValueError("Interview session 的 'evaluation_report' 必须是字典或 None。")
+
     # 验证题目进度一致性
     total_questions = normalized_config["total_questions"]
     # 防止题号越界、进度跳跃，以及“状态看似完成但主问题还没走完”的伪完成 session。
@@ -117,6 +146,11 @@ def _normalize_session_data(data: object) -> dict:
         "messages": messages,
         "questions_asked": questions_asked,
         "current_question_index": current_question_index,
+        "current_main_question": current_main_question,
+        "current_follow_up_count": current_follow_up_count,
+        "covered_topics": covered_topics,
+        "recent_performance": recent_performance,
+        "evaluation_report": evaluation_report,
     }
 
 
@@ -134,6 +168,11 @@ def create_session(config: dict) -> str:
             "messages": [],
             "questions_asked": [],
             "current_question_index": 0,
+            "current_main_question": None,
+            "current_follow_up_count": 0,
+            "covered_topics": [],
+            "recent_performance": [],
+            "evaluation_report": None,
         }
     )
     redis_client.setex(

@@ -42,6 +42,11 @@ def _build_session_payload(
         "messages": [],
         "questions_asked": questions_asked or [],
         "current_question_index": current_question_index,
+        "current_main_question": None,
+        "current_follow_up_count": 0,
+        "covered_topics": [],
+        "recent_performance": [],
+        "evaluation_report": None,
     }
 
 
@@ -93,6 +98,11 @@ def test_create_session_initializes_payload_and_prefixed_key():
         "messages": [],
         "questions_asked": [],
         "current_question_index": 0,
+        "current_main_question": None,
+        "current_follow_up_count": 0,
+        "covered_topics": [],
+        "recent_performance": [],
+        "evaluation_report": None,
     }
 
 
