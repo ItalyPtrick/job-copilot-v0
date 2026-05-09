@@ -101,9 +101,12 @@ def generate_question(
             "请只返回 JSON，对象必须包含字段：question、category、difficulty、difficulty_reason、follow_up_hint、assessment_focus。",
         ]
     )
-    result = InterviewQuestion(
-        **call_llm(system_prompt, {"candidate_context": candidate_context})
-    ).model_dump()
+    llm_result = call_llm(system_prompt, {"candidate_context": candidate_context})
+    if not isinstance(llm_result, dict):
+        raise RuntimeError("LLM 出题返回格式异常。")
+    if "error" in llm_result:
+        raise RuntimeError(f"LLM 出题失败: {llm_result['error']}")
+    result = InterviewQuestion(**llm_result).model_dump()
     if result["difficulty"] != difficulty:
         raise ValueError("LLM 返回的 difficulty 与请求值不一致。")
     if result["question"] in asked_questions:
@@ -129,4 +132,11 @@ def generate_follow_up(
         ]
     )
     result = call_llm(system_prompt, {})
+    if not isinstance(result, dict):
+        if isinstance(result, str) and result.strip():
+            return result.strip()
+        raise RuntimeError("LLM 追问生成返回格式异常。")
+    # JSON 解析失败但 raw 有文本时可作为追问；API 调用失败时 raw 为空，必须上抛。
+    if "error" in result and not result.get("raw"):
+        raise RuntimeError(f"LLM 追问生成失败: {result['error']}")
     return result.get("raw") or result.get("question") or str(result)

@@ -176,3 +176,61 @@ def test_generate_follow_up_prefers_raw_text_when_llm_returns_non_json():
         )
 
     assert result == "你刚才提到 asyncio，那事件循环具体负责什么？"
+
+
+def test_generate_question_raises_on_llm_error_dict():
+    """验证：call_llm 返回 error dict 时，generate_question 抛 RuntimeError。"""
+    from app.modules.interview.question_engine import (
+        build_skill_blueprint,
+        generate_question,
+    )
+
+    blueprint = build_skill_blueprint(SAMPLE_SKILL)
+
+    with patch(
+        "app.modules.interview.question_engine.call_llm",
+        return_value={"error": "LLM 服务异常: APIConnectionError", "raw": ""},
+    ):
+        with pytest.raises(RuntimeError, match="LLM 出题失败"):
+            generate_question(blueprint, "easy", [])
+
+
+def test_generate_question_raises_on_non_dict_llm_result():
+    """验证：call_llm 返回非 dict 时，generate_question 抛受控异常。"""
+    from app.modules.interview.question_engine import (
+        build_skill_blueprint,
+        generate_question,
+    )
+
+    blueprint = build_skill_blueprint(SAMPLE_SKILL)
+
+    with patch(
+        "app.modules.interview.question_engine.call_llm",
+        return_value=[],
+    ):
+        with pytest.raises(RuntimeError, match="LLM 出题返回格式异常"):
+            generate_question(blueprint, "easy", [])
+
+
+def test_generate_follow_up_raises_on_llm_error_with_empty_raw():
+    """验证：call_llm 返回 error 且 raw 为空时，generate_follow_up 抛 RuntimeError。"""
+    from app.modules.interview.question_engine import generate_follow_up
+
+    with patch(
+        "app.modules.interview.question_engine.call_llm",
+        return_value={"error": "LLM 服务异常: APIConnectionError", "raw": ""},
+    ):
+        with pytest.raises(RuntimeError, match="LLM 追问生成失败"):
+            generate_follow_up("问题", "回答", "追问焦点")
+
+
+def test_generate_follow_up_raises_on_non_text_non_dict_result():
+    """验证：call_llm 返回数组等非文本结果时，generate_follow_up 抛受控异常。"""
+    from app.modules.interview.question_engine import generate_follow_up
+
+    with patch(
+        "app.modules.interview.question_engine.call_llm",
+        return_value=[],
+    ):
+        with pytest.raises(RuntimeError, match="LLM 追问生成返回格式异常"):
+            generate_follow_up("问题", "回答", "追问焦点")

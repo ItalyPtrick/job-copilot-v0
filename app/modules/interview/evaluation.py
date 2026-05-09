@@ -15,6 +15,50 @@ _SCORE_RUBRIC = """\
 10：回答完整且有结构化思考，近乎完美"""
 
 
+def _score_to_performance_signal(score: int) -> str:
+    """把 1-10 分映射为 planner 使用的表现信号。"""
+    if score >= 7:
+        return "strong"
+    if score < 4:
+        return "weak"
+    return "normal"
+
+
+def evaluate_answer_quality(
+    question: str,
+    answer: str,
+    assessment_focus: str = "",
+) -> dict:
+    """对单次回答做轻量评分，供自适应 planner 使用。"""
+    system_prompt = "\n".join([
+        "你是一名技术面试评估专家，请只评估候选人对当前问题的这一次回答。",
+        "",
+        "评分标准：",
+        _SCORE_RUBRIC,
+        "",
+        f"问题：{question}",
+        f"考察重点：{assessment_focus or '未指定'}",
+        f"候选人回答：{answer}",
+        "",
+        "请只返回 JSON 对象，字段为 score（1-10 整数）和 feedback（简短说明）。",
+    ])
+
+    result = call_llm(system_prompt, {})
+    if not isinstance(result, dict) or "error" in result:
+        error = result.get("error", "LLM 单答评估返回格式异常") if isinstance(result, dict) else "LLM 单答评估返回格式异常"
+        raise RuntimeError(error)
+
+    score = result.get("score")
+    if type(score) is not int or not (1 <= score <= 10):
+        raise RuntimeError("LLM 单答评估返回无效 score。")
+
+    return {
+        "score": score,
+        "feedback": str(result.get("feedback", "")),
+        "performance_signal": _score_to_performance_signal(score),
+    }
+
+
 def _extract_interview_turns(messages: list[dict]) -> list[dict]:
     """从 session messages 中提取结构化面试轮次。
 
@@ -263,4 +307,6 @@ def evaluate_interview(messages: list[dict]) -> dict:
         return generate_report([])
 
     all_evaluations = evaluate_batch(turns)
+    if not all_evaluations:
+        raise RuntimeError("LLM 评估服务全部失效。")
     return generate_report(all_evaluations)

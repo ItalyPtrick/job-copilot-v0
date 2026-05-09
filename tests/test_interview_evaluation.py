@@ -6,6 +6,7 @@ import pytest
 
 from app.modules.interview.evaluation import (
     _extract_interview_turns,
+    evaluate_answer_quality,
     evaluate_batch,
     evaluate_interview,
     generate_report,
@@ -190,6 +191,29 @@ class TestEvaluateBatch:
         assert evaluations[0]["question_id"] == "q_1"
 
 
+# ── evaluate_answer_quality ───────────────────────────────────────────────
+
+
+class TestEvaluateAnswerQuality:
+    def test_evaluate_answer_quality_maps_score_to_signal(self):
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            return_value={"score": 8, "feedback": "回答有深度"},
+        ):
+            result = evaluate_answer_quality("问题", "回答", "重点")
+
+        assert result["score"] == 8
+        assert result["performance_signal"] == "strong"
+
+    def test_evaluate_answer_quality_rejects_llm_error(self):
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            return_value={"error": "模型返回格式异常", "raw": ""},
+        ):
+            with pytest.raises(RuntimeError):
+                evaluate_answer_quality("问题", "回答")
+
+
 # ── generate_report ──────────────────────────────────────────────────────
 
 
@@ -274,6 +298,35 @@ class TestEvaluateInterview:
         ]
         report = evaluate_interview(messages)
         assert report["overall_score"] == 0.0
+
+    def test_turns_exist_but_all_batches_fail_raises(self):
+        messages = _build_sample_messages()
+
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            return_value={"error": "模型返回格式异常", "raw": ""},
+        ):
+            with pytest.raises(RuntimeError):
+                evaluate_interview(messages)
+
+    def test_partial_batch_failure_returns_degraded_report(self):
+        messages = []
+        for index in range(4):
+            question_id = f"q_{index}"
+            messages.append(_build_main_message(question_id, f"问题 {index}"))
+            messages.append(_build_answer_message(question_id, f"回答 {index}"))
+
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            side_effect=[
+                {"error": "模型返回格式异常", "raw": ""},
+                [{"question_id": "q_3", "score": 8, "feedback": "好"}],
+            ],
+        ):
+            report = evaluate_interview(messages)
+
+        assert report["overall_score"] == 8.0
+        assert len(report["items"]) == 1
 
 
 # ── schemas import check ────────────────────────────────────────────────
