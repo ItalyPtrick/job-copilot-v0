@@ -1,7 +1,12 @@
 import os
 import json
+import logging
+
+import openai
 from openai import OpenAI
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -20,15 +25,27 @@ def call_llm(system_prompt: str, user_input: dict) -> dict:
     )  # 将用户输入的上下文转换为 JSON 字符串，使用 ASCII 编码
 
     # 调用 LLM 模型
-    response = client.chat.completions.create(
-        model=MODEL_NAME,  # 使用环境变量中指定的模型
-        messages=[  # 消息列表，包含系统提示和用户输入
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-    )
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,  # 使用环境变量中指定的模型
+            messages=[  # 消息列表，包含系统提示和用户输入
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+        )
+    except (
+        openai.APIError,
+        openai.APIConnectionError,
+        openai.RateLimitError,
+        openai.AuthenticationError,
+    ) as exc:
+        logger.warning("LLM API 调用失败: %s", exc)
+        return {"error": f"LLM 服务异常: {type(exc).__name__}", "raw": ""}
     # 从模型响应中提取文本内容(假设只返回文本)
-    raw_text = response.choices[0].message.content
+    if not response.choices:
+        logger.warning("LLM 返回空 choices: %s", response)
+        return {"error": "LLM 返回空响应", "raw": ""}
+    raw_text = response.choices[0].message.content or ""
 
     # 容错：清理可能的 markdown 代码块包裹
     cleaned = raw_text.strip()
