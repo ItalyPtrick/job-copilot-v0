@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D6 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并新增 schedule 相关测试覆盖；下一步进入 W3-D7 端到端验证与面试复习。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复；下一步进入 W4-D1。
 
 ---
 

@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding；同 collection 命中近重复时返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后继续上传，并在 `completed` 时写入 `similarity_fingerprint`。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3-D1 ~ W3-D6 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 定义、Skill 蓝图化出题引擎、评估引擎（`evaluation.py`，按主问题轮次评分）、自适应追问 planner（`interview_planner.py`）、面试路由（`router.py`，`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器（`invite_parser.py`，规则引擎 + AI 补充 + 合并策略）、日程路由（`/schedule/parse-invite`）、W3 测试补齐（134 passed, 2 skipped）。下一步进入 W3-D7（端到端验证 + 面试复习）。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试全部完成，pytest 全绿。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
 
 ---
 
@@ -24,12 +24,9 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 | `REDIS_URL` | Redis 连接串，默认 `redis://localhost:6379/0` |
 
 补充说明：
-- 聊天模型读取 `OPENAI_*`，embedding 读取 `OPENAI_EMBEDDING_*`。
-- 聊天与 embedding 可以分别走不同的 OpenAI 兼容端点。
-- 若 embeddings 使用阿里云百炼兼容接口，`OpenAIEmbeddings` 需设置 `check_embedding_ctx_length=False`，避免 LangChain 默认预切分导致兼容接口入参不匹配。
-- 百炼 embedding API 单批上限 10 条，`OpenAIEmbeddings` 需同时设置 `chunk_size=10`，避免批量写入时超限报 400。
-- 当前仓库实际接入的 embedding 模型是 `text-embedding-v4`。
-- RAG 问答链已落到 `app/modules/knowledge_base/rag_chain.py`，使用 LCEL 组合 `prompt | llm | parser`；流式版本当前仅输出文本，`sources` 由非流式返回。
+- 聊天模型读取 `OPENAI_*`，embedding 读取 `OPENAI_EMBEDDING_*`，两者可走不同端点。
+- 百炼兼容接口需设置 `check_embedding_ctx_length=False` + `chunk_size=10`，已在代码中配置，新增 embedding 调用时保持一致。
+- RAG 问答链在 `app/modules/knowledge_base/rag_chain.py`，使用 LCEL 组合；流式版本仅输出文本，`sources` 由非流式返回。
 
 ---
 
@@ -60,40 +57,25 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 
 ```bash
 uvicorn app.main:app --reload
-pytest tests/ -v
+pytest tests/ -v          # 面试相关测试需要 Redis 运行
 alembic upgrade head
 ```
 
-## 关键入口
+## 安全边界
 
-- FastAPI 入口：`app/main.py`
-- 任务 Orchestrator：`app/orchestrators/job_copilot_orchestrator.py`（`POST /task` 主流程 + trace + 持久化）
-- 模拟面试 Schema：`app/modules/interview/schemas.py`（W3-D1 基础数据模型，`InterviewQuestion` 已包含 `difficulty_reason` / `assessment_focus`）
-- 面试 Session 管理：`app/modules/interview/session_manager.py`（W3-D2 已完成的 Redis Session CRUD）
-- 面试 Skill 定义：`app/skills/python_backend.md`（W3-D2 首个面试方向配置）
-- 面试出题引擎：`app/modules/interview/question_engine.py`（W3-D3 Skill 蓝图解析、结构化出题、追问生成）
-- 面试评估引擎：`app/modules/interview/evaluation.py`（W3-D4 轮次提取、分批评估、汇总报告）
-- 面试 Planner：`app/modules/interview/interview_planner.py`（W3-D5 自适应追问决策，纯函数：难度序列 + 性能信号 + 动作决策）
-- 面试路由：`app/modules/interview/router.py`（W3-D5 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个端点）
-- 面试邀请解析器：`app/modules/schedule/invite_parser.py`（W3-D6 规则引擎 + AI 补充 + 合并策略）
-- 日程路由：`app/modules/schedule/router.py`（W3-D6 `POST /schedule/parse-invite`）
-- 知识库路由：`app/modules/knowledge_base/router.py`
-- RAG 问答链：`app/modules/knowledge_base/rag_chain.py`
-- 数据库连接：`app/database/connection.py`（导出 engine / SessionLocal / Base / get_db）
-- LLM 封装：`app/services/llm_service.py`（`call_llm` / `call_llm_with_tools` / `call_llm_with_tool_result`）
+- 不读取或输出 `.env` 中的密钥值。
+- 不删除 `data/` 目录（chroma 索引 + 上传文件）。
+- 不手动修改 alembic 版本链；需要迁移时用 `alembic revision --autogenerate`。
+- 不在无明确任务要求时改动跨模块契约：API 响应结构、Redis key 前缀/结构、`llm_service` 对外接口。如必须改，先说明影响面。
 
-## 测试定位
+## 代码导航
 
-- 知识库 API：`tests/test_kb_api.py`
-- RAG 问答链：`tests/test_rag_chain.py`
-- 面试 Session 管理：`tests/test_interview_session_manager.py`
-- 面试出题引擎：`tests/test_question_engine.py`
-- 面试评估引擎：`tests/test_interview_evaluation.py`
-- 面试 Planner：`tests/test_interview_planner.py`
-- 面试路由：`tests/test_interview_router.py`
-- 面试邀请解析器：`tests/test_schedule_invite_parser.py`
-- 日程路由：`tests/test_schedule_router.py`
-- 数据库与 Redis：`tests/test_database.py`、`tests/test_redis.py`
+- 入口：`app/main.py`，任务编排：`app/orchestrators/job_copilot_orchestrator.py`
+- 面试模块：`app/modules/interview/`（schemas / session_manager / question_engine / evaluation / interview_planner / router）
+- 日程模块：`app/modules/schedule/`（invite_parser / router）
+- 知识库模块：`app/modules/knowledge_base/`（router / rag_chain / document_loader）
+- LLM 封装：`app/services/llm_service.py`，数据库：`app/database/connection.py`
+- 测试文件对应 `tests/test_<模块名>.py`，面试 Skill 配置在 `app/skills/`
 
 ## 注释风格提醒
 

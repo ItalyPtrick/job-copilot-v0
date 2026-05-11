@@ -181,3 +181,8 @@ flowchart TD
 - **问题**：面试邀请文本包含两类信息——时间/链接等格式化字段和公司/岗位等自由文本字段。正则提取格式化字段准确率高，但难以覆盖所有自然语言写法；LLM 提取自由文本灵活，但对格式化字段不如正则精确。
 - **方案**：`invite_parser.py` 采用三层结构：`parse_invite_rule_based` 用正则提取时间（中文/ISO/斜杠格式）和会议链接（腾讯会议/Zoom/飞书/Teams）；`parse_invite_ai` 调用 LLM 提取公司、岗位、面试官等软字段；`parse_invite` 合并时规则结果优先，AI 只补充规则未提取到的空位。
 - **理由**：时间和会议链接是硬字段，正则确定性高、零 API 成本；公司/岗位/面试官是软字段，自然语言写法多样，正则难以穷举。合并时规则优先，避免 AI 的"创造性"覆盖规则的确定性结果。无链接时会议号/密码进入 notes，不自动拼接链接避免错误 URL。
+
+### W3-D7 评估引擎 question_id 映射修复
+- **问题**：`evaluate_batch` prompt 中用 `=== 题目 1 ===` 展示序号，LLM 返回 `question_id: 1`（整数）或 `question_id: "1"`（数字字符串），但 `batch_map` 的 key 是 UUID 字符串，导致所有评估结果在 `_parse_evaluations` 中因 key 不匹配被跳过，最终全批失败返回 503。
+- **方案**：两层修复——① prompt 中展示实际 UUID：`=== 题目 question_id="xxx" ===`，引导 LLM 返回正确 ID；② `_parse_evaluations` 增加序号兜底映射（`index_map`），当 LLM 仍返回整数或数字字符串时按位置映射回实际 UUID。
+- **理由**：LLM 输出不完全可控，即使 prompt 给了 UUID，仍可能返回序号。双层防御（prompt 引导 + 应用层兜底）比单纯依赖 prompt 更稳健。序号映射按 batch 内顺序对应，不会产生歧义。
