@@ -169,6 +169,35 @@ class TestEvaluateBatch:
 
         assert evaluations == []
 
+    def test_evaluate_batch_includes_follow_up_answers_in_prompt(self):
+        """追问回答必须出现在传给 LLM 的评分 prompt 中，确保评分综合补救表现。"""
+        messages = [
+            _build_main_message("q_1", "什么是 GIL？", category="并发编程"),
+            _build_answer_message("q_1", "不太清楚..."),
+            _build_follow_up_message("fu_1", "q_1", "GIL 对 IO 密集型有影响吗？"),
+            _build_answer_message("fu_1", "IO 密集型影响不大，线程等待时释放 GIL"),
+        ]
+        turns = _extract_interview_turns(messages)
+
+        captured_prompts = []
+
+        def capture_llm(system_prompt: str, user_input: dict):
+            captured_prompts.append(system_prompt)
+            return [{"question_id": "q_1", "score": 6, "feedback": "追问后有补救"}]
+
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            side_effect=capture_llm,
+        ):
+            evaluate_batch(turns)
+
+        assert len(captured_prompts) == 1
+        prompt = captured_prompts[0]
+        # 验证追问内容被传入评分 prompt
+        assert "GIL 对 IO 密集型有影响吗" in prompt
+        assert "IO 密集型影响不大" in prompt
+        assert "不太清楚" in prompt
+
     def test_evaluate_batch_partial_invalid_items(self):
         """LLM 返回部分有效、部分无效的混合数据。"""
         turns = _extract_interview_turns(_build_sample_messages())
