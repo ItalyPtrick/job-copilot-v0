@@ -176,3 +176,8 @@ flowchart TD
 - **问题**：`/interview/answer` 处理链路较长（用户消息追加 → 单答评估 → planner 决策 → 出题/追问），中途任何一步抛异常时，session 已被部分修改（至少 user message 和 performance entry 已 append），若直接写回 Redis，下次请求会基于不一致状态继续。
 - **方案**：在进入 try 块之前，先拷贝 `original_messages` 和 `original_recent_performance`；异常发生时用这两份快照回滚 session 后再写回 Redis，然后抛 HTTP 503。
 - **理由**：session 是多步操作的共享可变状态，部分写入比不写更危险——planner 可能基于残留的 performance entry 做出错误决策。回滚到回答前的干净状态，用户可以重新提交同一回答，不会产生重复消息或题序错乱。
+
+### W3-D6 面试邀请解析器合并策略
+- **问题**：面试邀请文本包含两类信息——时间/链接等格式化字段和公司/岗位等自由文本字段。正则提取格式化字段准确率高，但难以覆盖所有自然语言写法；LLM 提取自由文本灵活，但对格式化字段不如正则精确。
+- **方案**：`invite_parser.py` 采用三层结构：`parse_invite_rule_based` 用正则提取时间（中文/ISO/斜杠格式）和会议链接（腾讯会议/Zoom/飞书/Teams）；`parse_invite_ai` 调用 LLM 提取公司、岗位、面试官等软字段；`parse_invite` 合并时规则结果优先，AI 只补充规则未提取到的空位。
+- **理由**：时间和会议链接是硬字段，正则确定性高、零 API 成本；公司/岗位/面试官是软字段，自然语言写法多样，正则难以穷举。合并时规则优先，避免 AI 的"创造性"覆盖规则的确定性结果。无链接时会议号/密码进入 notes，不自动拼接链接避免错误 URL。

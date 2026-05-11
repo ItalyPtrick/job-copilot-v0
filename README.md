@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D5 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner 和面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）；全量测试 120 passed, 2 skipped，下一步进入 W3-D6 面试安排模块。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D6 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并新增 schedule 相关测试覆盖；下一步进入 W3-D7 端到端验证与面试复习。
 
 ---
 
@@ -26,6 +26,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - 知识库上传具备两层保护：完全重复按 `file_hash` 幂等短路（`reused: true`），高度相似文档返回 `confirmation_required` 并等待 `confirm_upload=true` 重试
 - 模拟面试的 Session 当前已基于 Redis 管理：会话数据包含 `config` / `status` / `messages` / `questions_asked` / `current_question_index` / `current_main_question` / `current_follow_up_count` / `covered_topics` / `recent_performance` / `evaluation_report`，默认 TTL 为 2 小时
 - 模拟面试已提供 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个 API 端点；`/interview/answer` 通过自适应追问 planner 决定追问/下一题/完成，并根据回答表现动态调节难度
+- 日程模块已提供 `POST /schedule/parse-invite`，把面试邀请文本解析为公司、岗位、开始/结束时间、会议链接、面试官和备注
 - `app/skills/python_backend.md` 已作为首个面试方向 Skill 文件落地，用来约束考察范围、难度分布和参考知识库 collection
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
@@ -119,6 +120,7 @@ uvicorn app.main:app --reload
 - 交互式文档：`http://127.0.0.1:8000/docs`
 - `/docs` 中可见知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
 - `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
+- `/docs` 中可见日程接口：`/schedule/parse-invite`
 
 **启动前端（可选）**
 
@@ -216,6 +218,14 @@ HTTP 状态码：成功 `200`，失败 `400`。
 { "session_id": "<从 start 获取>" }
 ```
 
+**日程接口**
+
+`POST /schedule/parse-invite` 解析面试邀请文本，返回 `company`、`position`、`start_time`、`end_time`、`meeting_link`、`interviewer`、`notes`。
+
+```json
+{ "text": "示例科技 Python 后端面试，时间 2026-05-10 14:00-16:00，链接 https://meeting.tencent.com/dm/abc。" }
+```
+
 ---
 
 ## 其他注意事项
@@ -274,7 +284,9 @@ job-copilot-v0/
 │   │   │   ├── near_duplicate.py        # W2-D6 近重复文本提取 / SimHash / 候选查找
 │   │   │   └── rag_chain.py             # W2-D3 RAG 问答链
 │   │   └── schedule/
-│   │       └── __init__.py              # W3-D1 预留包结构，D6 补实现
+│   │       ├── __init__.py
+│   │       ├── invite_parser.py         # W3-D6 面试邀请解析：规则引擎 + AI 补充 + 合并策略
+│   │       └── router.py                # W3-D6 日程路由：/schedule/parse-invite
 │   ├── cache/
 │   │   └── redis_client.py              # Redis 客户端封装
 │   ├── database/

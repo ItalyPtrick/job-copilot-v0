@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding；同 collection 命中近重复时返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后继续上传，并在 `completed` 时写入 `similarity_fingerprint`。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3-D1 ~ W3-D5 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 定义、Skill 蓝图化出题引擎、评估引擎（`evaluation.py`，按主问题轮次评分）、自适应追问 planner（`interview_planner.py`）和面试路由（`router.py`，`/interview/start`、`/interview/answer`、`/interview/evaluate`）；全量测试 120 passed, 2 skipped；下一步进入 W3-D6 面试安排模块。项目总览与常规使用说明以 `README.md` 为准。
+当前阶段：W1 数据层 + W2 知识库全部完成。upload 接口实现两阶段 commit（`uploading` → `completed`），`(collection_name, file_hash)` 唯一约束兜底幂等判重和并发竞争，重复上传返回 `reused: true` 并跳过 embedding；同 collection 命中近重复时返回 HTTP 200 + `status=confirmation_required`，前端带 `confirm_upload=true` 重试后继续上传，并在 `completed` 时写入 `similarity_fingerprint`。Orchestrator 已通过 `_build_retriever_context` 实现 RAG 上下文按需注入。W3-D1 ~ W3-D6 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 定义、Skill 蓝图化出题引擎、评估引擎（`evaluation.py`，按主问题轮次评分）、自适应追问 planner（`interview_planner.py`）、面试路由（`router.py`，`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器（`invite_parser.py`，规则引擎 + AI 补充 + 合并策略）、日程路由（`/schedule/parse-invite`）、W3 测试补齐（134 passed, 2 skipped）。下一步进入 W3-D7（端到端验证 + 面试复习）。项目总览与常规使用说明以 `README.md` 为准。
 
 ---
 
@@ -75,6 +75,8 @@ alembic upgrade head
 - 面试评估引擎：`app/modules/interview/evaluation.py`（W3-D4 轮次提取、分批评估、汇总报告）
 - 面试 Planner：`app/modules/interview/interview_planner.py`（W3-D5 自适应追问决策，纯函数：难度序列 + 性能信号 + 动作决策）
 - 面试路由：`app/modules/interview/router.py`（W3-D5 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个端点）
+- 面试邀请解析器：`app/modules/schedule/invite_parser.py`（W3-D6 规则引擎 + AI 补充 + 合并策略）
+- 日程路由：`app/modules/schedule/router.py`（W3-D6 `POST /schedule/parse-invite`）
 - 知识库路由：`app/modules/knowledge_base/router.py`
 - RAG 问答链：`app/modules/knowledge_base/rag_chain.py`
 - 数据库连接：`app/database/connection.py`（导出 engine / SessionLocal / Base / get_db）
@@ -89,6 +91,8 @@ alembic upgrade head
 - 面试评估引擎：`tests/test_interview_evaluation.py`
 - 面试 Planner：`tests/test_interview_planner.py`
 - 面试路由：`tests/test_interview_router.py`
+- 面试邀请解析器：`tests/test_schedule_invite_parser.py`
+- 日程路由：`tests/test_schedule_router.py`
 - 数据库与 Redis：`tests/test_database.py`、`tests/test_redis.py`
 
 ## 注释风格提醒
