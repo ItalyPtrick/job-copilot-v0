@@ -148,8 +148,8 @@ def evaluate_batch(turns: list[dict]) -> list[dict]:
     for batch_start in range(0, len(turns), _BATCH_SIZE):
         batch = turns[batch_start : batch_start + _BATCH_SIZE]
         turns_text = "\n\n".join(
-            f"=== 题目 {index + 1} ===\n{_format_turn_for_prompt(turn)}"
-            for index, turn in enumerate(batch)
+            f"=== 题目 question_id=\"{turn['question_id']}\" ===\n{_format_turn_for_prompt(turn)}"
+            for turn in batch
         )
 
         system_prompt = "\n".join([
@@ -203,6 +203,8 @@ def _parse_evaluations(result: dict, batch: list[dict]) -> list[dict] | None:
 
     # 按 question_id 关联回 batch，补齐 category / question / answer
     batch_map = {turn["question_id"]: turn for turn in batch}
+    # 兜底：LLM 可能返回整数序号而非 UUID，建立序号→实际 ID 的映射
+    index_map = {i + 1: turn["question_id"] for i, turn in enumerate(batch)}
     validated: list[dict] = []
 
     for item in raw_items:
@@ -216,6 +218,12 @@ def _parse_evaluations(result: dict, batch: list[dict]) -> list[dict] | None:
             continue
         if not (1 <= score <= 10):
             continue
+
+        # 序号兜底：LLM 返回整数或数字字符串时映射回实际 question_id
+        if isinstance(question_id, int) and question_id not in batch_map:
+            question_id = index_map.get(question_id, question_id)
+        elif isinstance(question_id, str) and question_id not in batch_map and question_id.isdigit():
+            question_id = index_map.get(int(question_id), question_id)
 
         if question_id not in batch_map:
             continue

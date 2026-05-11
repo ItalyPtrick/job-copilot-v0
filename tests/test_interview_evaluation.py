@@ -157,6 +157,19 @@ class TestEvaluateBatch:
         assert evaluations[0]["category"] == "并发编程"
         assert evaluations[1]["question_id"] == "q_2"
 
+    def test_evaluate_batch_maps_numeric_string_question_id(self):
+        """LLM 把题号作为字符串返回时，也能映射回实际 question_id。"""
+        turns = _extract_interview_turns(_build_sample_messages())
+
+        with patch(
+            "app.modules.interview.evaluation.call_llm",
+            return_value=[{"question_id": "1", "score": 8, "feedback": "回答清晰"}],
+        ):
+            evaluations = evaluate_batch(turns)
+
+        assert len(evaluations) == 1
+        assert evaluations[0]["question_id"] == "q_1"
+
     def test_evaluate_batch_llm_parse_failure(self):
         """LLM 返回不可解析数据时，该批被跳过，不崩溃。"""
         turns = _extract_interview_turns(_build_sample_messages())
