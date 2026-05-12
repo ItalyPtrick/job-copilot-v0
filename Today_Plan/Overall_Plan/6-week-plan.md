@@ -17,4 +17,4 @@
 
 ---
 
-> W1-W4 日计划见 `Today_Plan/Each_Week/`，W5-W6 待 W4 完成后展开。
+> W1-W5 日计划见 `Today_Plan/Each_Week/`，W6 待 W5 完成后展开。
