@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试全部完成，pytest 全绿。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
+当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试全部完成，W4 简历智能分析进行中（D1 完成）。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
 
 ---
 
@@ -74,6 +74,7 @@ alembic upgrade head
 - 面试模块：`app/modules/interview/`（schemas / session_manager / question_engine / evaluation / interview_planner / router）
 - 日程模块：`app/modules/schedule/`（invite_parser / router）
 - 知识库模块：`app/modules/knowledge_base/`（router / rag_chain / document_loader）
+- 简历模块：`app/modules/resume/`（parser / analyzer / tasks / service / report_export / router）—— W4 进行中
 - LLM 封装：`app/services/llm_service.py`，数据库：`app/database/connection.py`
 - 测试文件对应 `tests/test_<模块名>.py`，面试 Skill 配置在 `app/skills/`
 
