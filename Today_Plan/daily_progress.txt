@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W4-D2：结构化 Prompt + 内容哈希去重 + ResumeRecord 模型 + analyzer.py + Alembic 迁移
+W4-D3：Celery 架构 + celery_app.py + tasks.py + service.py + Worker 启动验证
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -26,9 +26,9 @@ W4-D2：结构化 Prompt + 内容哈希去重 + ResumeRecord 模型 + analyzer.p
 - W3-D6-任务3：W3 测试补齐（evaluation 追问评分结构验证）+ 全套 67 passed ✅
 - W3-D7：端到端验证 + 面试复习 + 评估引擎 bug 修复 + Skill 文件优化 ✅
 - W4-D1：文档解析概念 + 简历解析器 parser.py ✅
+- W4-D2：结构化 Prompt + 内容哈希去重 + ResumeRecord 模型 + analyzer.py + Alembic 迁移 ✅
 
 == 待完成步骤 ==
-- W4-D2：结构化 Prompt + 内容哈希去重 + ResumeRecord 模型 + analyzer.py + Alembic 迁移
 - W4-D3：Celery 架构 + celery_app.py + tasks.py + service.py + Worker 启动验证
 - W4-D4：ReportLab 中文字体 + report_export.py（PDF 报告生成）
 - W4-D5：FastAPI 路由 router.py（upload/status/report/export）+ 注册到 main.py

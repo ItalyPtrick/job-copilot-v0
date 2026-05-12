@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复；下一步进入 W4-D1。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D2 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt + 内容哈希去重）+ `ResumeRecord` 模型扩展 + Alembic 迁移；下一步进入 W4-D3。
 
 ---
 
@@ -283,6 +283,10 @@ job-copilot-v0/
 │   │   │   ├── document_loader.py       # W2-D2 文档加载与分块
 │   │   │   ├── near_duplicate.py        # W2-D6 近重复文本提取 / SimHash / 候选查找
 │   │   │   └── rag_chain.py             # W2-D3 RAG 问答链
+│   │   ├── resume/
+│   │   │   ├── __init__.py
+│   │   │   ├── parser.py                # W4-D1 简历解析：PDF/DOCX/TXT 策略分派
+│   │   │   └── analyzer.py              # W4-D2 LLM 结构化分析 + 内容哈希去重
 │   │   └── schedule/
 │   │       ├── __init__.py
 │   │       ├── invite_parser.py         # W3-D6 面试邀请解析：规则引擎 + AI 补充 + 合并策略
@@ -300,7 +304,7 @@ job-copilot-v0/
 │   │       ├── task_record.py           # 任务执行历史模型
 │   │       ├── knowledge.py             # W2 RAG 知识库模型（含幂等唯一约束）
 │   │       ├── interview.py             # W3 占位模型（id + created_at，字段待 W3 补）
-│   │       └── resume.py                # W4 占位模型（id + created_at，字段待 W4 补）
+│   │       └── resume.py                # W4 简历分析模型（filename/content_hash/status/target_role/analysis_result/raw_text）
 │   ├── skills/
 │   │   └── python_backend.md            # W3-D2 面试方向 Skill 定义
 │   ├── services/

@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试全部完成，W4 简历智能分析进行中（D1 完成）。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
+当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试全部完成，W4 简历智能分析进行中。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
 
 ---
 
@@ -12,16 +12,16 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 
 环境变量（`.env`，已 gitignore）：
 
-| 变量 | 用途 |
-|---|---|
-| `OPENAI_API_KEY` | 聊天模型 API 密钥 |
-| `OPENAI_BASE_URL` | 聊天模型 API 地址（可选，用于代理/兼容端点） |
-| `OPENAI_MODEL` | 聊天模型名称 |
-| `OPENAI_EMBEDDING_API_KEY` | 向量模型 API 密钥 |
-| `OPENAI_EMBEDDING_BASE_URL` | 向量模型 API 地址（兼容 OpenAI embeddings） |
-| `OPENAI_EMBEDDING_MODEL` | 向量模型名称 |
-| `DATABASE_URL` | 数据库连接串，默认 `sqlite:///./job_copilot.db` |
-| `REDIS_URL` | Redis 连接串，默认 `redis://localhost:6379/0` |
+| 变量                        | 用途                                            |
+| --------------------------- | ----------------------------------------------- |
+| `OPENAI_API_KEY`            | 聊天模型 API 密钥                               |
+| `OPENAI_BASE_URL`           | 聊天模型 API 地址（可选，用于代理/兼容端点）    |
+| `OPENAI_MODEL`              | 聊天模型名称                                    |
+| `OPENAI_EMBEDDING_API_KEY`  | 向量模型 API 密钥                               |
+| `OPENAI_EMBEDDING_BASE_URL` | 向量模型 API 地址（兼容 OpenAI embeddings）     |
+| `OPENAI_EMBEDDING_MODEL`    | 向量模型名称                                    |
+| `DATABASE_URL`              | 数据库连接串，默认 `sqlite:///./job_copilot.db` |
+| `REDIS_URL`                 | Redis 连接串，默认 `redis://localhost:6379/0`   |
 
 补充说明：
 - 聊天模型读取 `OPENAI_*`，embedding 读取 `OPENAI_EMBEDDING_*`，两者可走不同端点。
@@ -45,6 +45,15 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 1. "是否要帮你更新 `Today_Plan/daily_progress.txt`？"
 2. "是否检查 `CLAUDE.md` 需不需要更新？仅当用户明确要求时再检查 `README.md`。"
 3. "是否检查今天形成的设计决策是否已同步到 `docs/design-decisions.md`？"
+
+---
+
+## design-decisions.md 文风
+
+- 每条决策包含：问题 → 解法 → 为什么这样做（而非为什么不那样做）
+- 有真实踩坑经历的条目，在"解法"前加一句"踩坑：最初尝试 X，发现 Y"
+- 涉及性能/成本权衡时嵌入具体数字（token 数、延迟、费用）
+- 子决策用缩进层级挂在父条目下，不另起顶级标题
 
 ---
 
