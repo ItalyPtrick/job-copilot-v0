@@ -11,7 +11,10 @@ class ResumeRecord(Base):
     __tablename__ = "resume_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    resume_id = Column(String(64), nullable=False, unique=True, index=True)
     filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False, default="")
+    file_ext = Column(String(20), nullable=False, default="")
     content_hash = Column(String(64), nullable=False, unique=True, index=True)
     status = Column(String(20), nullable=False, default="pending")
     target_role = Column(String(100), default="")
