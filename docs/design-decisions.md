@@ -131,3 +131,16 @@
 - **为什么不支持 .doc**：.doc 是 OLE2 二进制格式，python-docx 只支持 .docx（Office Open XML）。支持 .doc 需要引入 `antiword` 或 `libreoffice` 命令行依赖，对当前原型阶段引入的运维复杂度不值得。明确拒绝（raise ValueError）比静默失败更好。
 - **为什么不用 unstructured 库**：unstructured 是重量级依赖（安装体积 >500MB，依赖 poppler/tesseract），简历场景只需要纯文本提取，3 行 PyMuPDF 代码足够。YAGNI。
 
+### Celery 异步架构：Broker 隔离与 Windows 适配
+
+- **问题**：简历 LLM 分析耗时 10-30 秒，同步执行会阻塞 API 请求。
+- **解法**：Celery + Redis 做异步任务队列。Broker 和 Result Backend 均用 Redis DB 1，与主应用缓存（DB 0）隔离，避免任务消息与业务缓存 key 冲突。Worker 独立进程执行，API 只负责 `task.delay()` 提交和状态查询。
+- **为什么用 Redis DB 1 而非独立 Redis 实例**：单机开发阶段无需额外进程，DB 编号隔离足够；生产环境可通过环境变量切换到独立实例，零代码改动。
+  - **Windows 约束**：Celery 4+ 不支持 Windows 多进程 prefork pool，开发环境用 `--pool=solo`（单进程顺序执行）。不影响功能正确性，仅吞吐量受限；部署到 Linux 时切回默认 prefork 即可。
+  - **去重竞态处理**：`content_hash` 列 unique 约束 + `update_content_hash` 返回 bool。并发任务解析出相同内容时，后到者 commit 触发 IntegrityError → rollback → 返回 `duplicate_in_progress`，避免重复 LLM 调用。
+
+### ResumeRecord 外部标识：UUID resume_id
+
+- **问题**：异步任务提交后需要立即返回可查询的 ID，但自增 `id` 在 `db.commit()` 后才确定，无法在 `task.delay()` 前使用。
+- **解法**：新增 `resume_id` 字段（UUID4 字符串），由路由层在提交前生成，作为任务追踪和 API 查询的唯一标识。自增 `id` 保留为内部主键。
+- **为什么不直接用 UUID 做主键**：SQLite 对整数主键有 rowid 优化，UUID 主键会导致 B-tree 随机插入和索引膨胀。外部标识和内部主键分离，各取所长。

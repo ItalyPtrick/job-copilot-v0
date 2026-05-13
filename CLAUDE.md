@@ -9,6 +9,7 @@
 ## 环境约束
 
 conda 环境：`job-copilot-v0`，Python 3.11。
+激活conda命令（powershell）：conda activate job-copilot-v0
 
 环境变量（`.env`，已 gitignore）：
 
