@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D2 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt + 内容哈希去重）+ `ResumeRecord` 模型扩展 + Alembic 迁移；下一步进入 W4-D3。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D5 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt + 内容哈希去重）+ `ResumeRecord` 模型扩展 + Alembic 迁移 + Celery 异步任务（`tasks.py` + `service.py` + `celery_app.py`）+ PDF 报告导出（`report_export.py`）+ FastAPI 路由（`router.py` 5 端点：upload/status/report/export/list）+ main.py 注册 + 端到端验证；下一步进入 W4-D6 测试完善。
 
 ---
 
@@ -27,6 +27,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - 模拟面试的 Session 当前已基于 Redis 管理：会话数据包含 `config` / `status` / `messages` / `questions_asked` / `current_question_index` / `current_main_question` / `current_follow_up_count` / `covered_topics` / `recent_performance` / `evaluation_report`，默认 TTL 为 2 小时
 - 模拟面试已提供 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个 API 端点；`/interview/answer` 通过自适应追问 planner 决定追问/下一题/完成，并根据回答表现动态调节难度
 - 日程模块已提供 `POST /schedule/parse-invite`，把面试邀请文本解析为公司、岗位、开始/结束时间、会议链接、面试官和备注
+- 简历模块已提供 5 个 API 端点：`/resume/upload`（上传 + 触发异步分析）、`/resume/{id}/status`（轮询状态）、`/resume/{id}/report`（获取结构化结果）、`/resume/{id}/export`（下载 PDF 报告）、`/resume/list`（历史记录分页）；上传采用 content_hash 去重（W2-D5 模式），分析任务通过 Celery 异步执行
 - `app/skills/python_backend.md` 已作为首个面试方向 Skill 文件落地，用来约束考察范围、难度分布和参考知识库 collection
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
@@ -47,6 +48,8 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 | 缓存 | Redis |
 | 数据库迁移 | Alembic |
 | 数据校验 | Pydantic v2 |
+| 异步任务 | Celery + Redis |
+| PDF 生成 | ReportLab |
 | 测试 | pytest |
 | Python | 3.11（conda 环境 `job-copilot-v0`） |
 
@@ -121,6 +124,7 @@ uvicorn app.main:app --reload
 - `/docs` 中可见知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
 - `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
 - `/docs` 中可见日程接口：`/schedule/parse-invite`
+- `/docs` 中可见简历接口：`/resume/upload`、`/resume/{id}/status`、`/resume/{id}/report`、`/resume/{id}/export`、`/resume/list`
 
 **启动前端（可选）**
 
@@ -286,7 +290,11 @@ job-copilot-v0/
 │   │   ├── resume/
 │   │   │   ├── __init__.py
 │   │   │   ├── parser.py                # W4-D1 简历解析：PDF/DOCX/TXT 策略分派
-│   │   │   └── analyzer.py              # W4-D2 LLM 结构化分析 + 内容哈希去重
+│   │   │   ├── analyzer.py              # W4-D2 LLM 结构化分析 + 内容哈希去重
+│   │   │   ├── tasks.py                 # W4-D3 Celery 异步任务（analyze_resume_task）
+│   │   │   ├── service.py               # W4-D3 CRUD 服务层（create/get/update）
+│   │   │   ├── report_export.py         # W4-D4 PDF 报告生成（ReportLab + 中文字体）
+│   │   │   └── router.py                # W4-D5 FastAPI 路由（upload/status/report/export/list）
 │   │   └── schedule/
 │   │       ├── __init__.py
 │   │       ├── invite_parser.py         # W3-D6 面试邀请解析：规则引擎 + AI 补充 + 合并策略
