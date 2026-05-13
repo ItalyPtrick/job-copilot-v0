@@ -45,8 +45,10 @@ job_copilot.db
 evaluation/.claude/
 data/chroma/
 data/uploads/
+data/resumes/
 data/test-uploads/
 docs/superpowers/
+*.log
 
 # OS files
 .DS_Store

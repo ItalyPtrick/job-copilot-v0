@@ -9,6 +9,7 @@ from app.database.connection import engine, Base
 from app.modules.knowledge_base.router import router as kb_router
 from app.modules.interview.router import router as interview_router
 from app.modules.schedule.router import router as schedule_router
+from app.modules.resume.router import router as resume_router
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(kb_router)
 app.include_router(interview_router)
 app.include_router(schedule_router)
+app.include_router(resume_router)
 
 
 class TaskRequest(BaseModel):
