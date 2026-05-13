@@ -144,3 +144,10 @@
 - **问题**：异步任务提交后需要立即返回可查询的 ID，但自增 `id` 在 `db.commit()` 后才确定，无法在 `task.delay()` 前使用。
 - **解法**：新增 `resume_id` 字段（UUID4 字符串），由路由层在提交前生成，作为任务追踪和 API 查询的唯一标识。自增 `id` 保留为内部主键。
 - **为什么不直接用 UUID 做主键**：SQLite 对整数主键有 rowid 优化，UUID 主键会导致 B-tree 随机插入和索引膨胀。外部标识和内部主键分离，各取所长。
+
+### PDF 报告生成：ReportLab + 中文字体延迟注册
+
+- **问题**：LLM 分析结果需要导出为可下载的 PDF 报告，中文内容必须正确渲染。
+- **解法**：ReportLab 的 `SimpleDocTemplate` + `Paragraph` + `Table` 组合排版，生成 PDF 时延迟注册中文字体。Windows 下优先使用 `C:\Windows\Fonts\simhei.ttf`，缺失或注册失败时回退到 ReportLab 内置 `STSong-Light`，避免模块导入阶段因字体问题崩溃。LLM 文本进入 `Paragraph` 前统一 XML 转义，避免 `<`、`&` 等字符触发 ReportLab 标记解析。
+- **为什么不用 WeasyPrint / wkhtmltopdf**：ReportLab 纯 Python 实现无外部系统依赖（WeasyPrint 依赖 Cairo/Pango，wkhtmltopdf 需要 Qt WebKit），对服务端异步生成场景部署最轻量。ReportLab 对 PDF 布局的精确控制也更适合固定模板式报告。
+  - **字体选择**：SimHei（黑体）是 Windows 系统自带字体，覆盖率高，笔画均匀在小字号下可读性好。SimSun（宋体）衬线在屏幕 PDF 阅读器中渲染效果不如黑体。
