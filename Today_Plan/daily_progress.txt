@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W4-D5 完成
+W4-D7 完成
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -30,7 +30,7 @@ W4-D5 完成
 - W4-D3：Celery 架构 + celery_app.py + tasks.py + service.py + Worker 启动验证 ✅
 - W4-D4：ReportLab 中文字体 + report_export.py（PDF 报告生成）✅
 - W4-D5：FastAPI 路由 router.py（5 端点）+ main.py 注册 + 基础测试 3 passed + 端到端验证 7 步全通过 ✅
+- W4-D6：测试完善（test_resume_tasks.py 9 用例 + test_resume_api.py 12 用例 + 去重/edge case）+ 全量简历定向测试 40/40 passed ✅
+- W4-D7：端到端自动化测试（5 用例）+ 代码清理（docstring）+ README 更新 + 设计决策补充 + 全量测试 182 passed + 面试复盘 ✅
 
 == 待完成步骤 ==
-- W4-D6：测试完善（parser/analyzer/tasks/api/report_export 5 组 + 去重验证）
-- W4-D7：端到端验证 + 代码清理 + 设计决策 + 面试复习

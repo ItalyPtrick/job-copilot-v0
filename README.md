@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D5 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt + 内容哈希去重）+ `ResumeRecord` 模型扩展 + Alembic 迁移 + Celery 异步任务（`tasks.py` + `service.py` + `celery_app.py`）+ PDF 报告导出（`report_export.py`）+ FastAPI 路由（`router.py` 5 端点：upload/status/report/export/list）+ main.py 注册 + 端到端验证；下一步进入 W4-D6 测试完善。
+> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D7 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt）+ `ResumeRecord` 模型扩展 + Alembic 迁移 + Celery 异步任务（`tasks.py` + `service.py` + `celery_app.py`）+ content_hash 去重与进行中重复任务重试 + PDF 报告导出（`report_export.py`）+ FastAPI 路由（`router.py` 5 端点：upload/status/report/export/list）+ main.py 注册 + 端到端验证 + 测试完善（`test_resume_tasks.py` 9 用例 + `test_resume_api.py` 12 用例 + 去重/edge case 验证）。
 
 ---
 
@@ -27,7 +27,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - 模拟面试的 Session 当前已基于 Redis 管理：会话数据包含 `config` / `status` / `messages` / `questions_asked` / `current_question_index` / `current_main_question` / `current_follow_up_count` / `covered_topics` / `recent_performance` / `evaluation_report`，默认 TTL 为 2 小时
 - 模拟面试已提供 `/interview/start`、`/interview/answer`、`/interview/evaluate` 三个 API 端点；`/interview/answer` 通过自适应追问 planner 决定追问/下一题/完成，并根据回答表现动态调节难度
 - 日程模块已提供 `POST /schedule/parse-invite`，把面试邀请文本解析为公司、岗位、开始/结束时间、会议链接、面试官和备注
-- 简历模块已提供 5 个 API 端点：`/resume/upload`（上传 + 触发异步分析）、`/resume/{id}/status`（轮询状态）、`/resume/{id}/report`（获取结构化结果）、`/resume/{id}/export`（下载 PDF 报告）、`/resume/list`（历史记录分页）；上传采用 content_hash 去重（W2-D5 模式），分析任务通过 Celery 异步执行
+- 简历模块已提供 5 个 API 端点：`/resume/upload`（上传 + 触发异步分析）、`/resume/{id}/status`（轮询状态）、`/resume/{id}/report`（获取结构化结果）、`/resume/{id}/export`（下载 PDF 报告）、`/resume/list`（历史记录分页）；分析任务解析文本后按 content_hash 去重（W2-D5 模式），通过 Celery 异步执行
 - `app/skills/python_backend.md` 已作为首个面试方向 Skill 文件落地，用来约束考察范围、难度分布和参考知识库 collection
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
@@ -230,6 +230,35 @@ HTTP 状态码：成功 `200`，失败 `400`。
 { "text": "示例科技 Python 后端面试，时间 2026-05-10 14:00-16:00，链接 https://meeting.tencent.com/dm/abc。" }
 ```
 
+**简历分析接口**
+
+简历分析通过 `/resume/*` 路由提供，采用异步处理：上传后立即返回 `resume_id`，后台 Celery Worker 执行解析→去重→LLM 分析，前端轮询状态获取结果。
+
+功能：
+- 支持 PDF / DOCX / TXT 三种格式
+- 内容哈希去重：相同简历 + 相同目标岗位直接复用已有分析结果
+- 分析结果可导出为 PDF 报告（中文排版）
+
+端点：
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/resume/upload` | 上传简历，触发异步分析（返回 `resume_id`） |
+| GET | `/resume/{id}/status` | 查询分析状态（pending / analyzing / completed / failed） |
+| GET | `/resume/{id}/report` | 获取结构化分析报告（需 completed） |
+| GET | `/resume/{id}/export` | 下载 PDF 报告（需 completed） |
+| GET | `/resume/list` | 历史记录分页列表 |
+
+启动方式（需额外启动 Celery Worker）：
+
+```bash
+# 终端 1：FastAPI
+uvicorn app.main:app --reload
+
+# 终端 2：Celery Worker
+celery -A celery_app worker --loglevel=info --pool=solo
+```
+
 ---
 
 ## 其他注意事项
@@ -249,6 +278,7 @@ pytest tests/ -v
 面试评估引擎定向测试：`pytest tests/test_interview_evaluation.py -v`
 面试 Planner 定向测试：`pytest tests/test_interview_planner.py -v`
 面试路由定向测试：`pytest tests/test_interview_router.py -v`
+简历模块定向测试：`pytest tests/test_resume_parser.py tests/test_resume_analyzer.py tests/test_resume_tasks.py tests/test_resume_api.py tests/test_report_export.py tests/test_resume_e2e.py -v --basetemp=.pytest_tmp`
 
 **知识库接口最小手工验收**
 
@@ -290,7 +320,7 @@ job-copilot-v0/
 │   │   ├── resume/
 │   │   │   ├── __init__.py
 │   │   │   ├── parser.py                # W4-D1 简历解析：PDF/DOCX/TXT 策略分派
-│   │   │   ├── analyzer.py              # W4-D2 LLM 结构化分析 + 内容哈希去重
+│   │   │   ├── analyzer.py              # W4-D2 LLM 结构化分析
 │   │   │   ├── tasks.py                 # W4-D3 Celery 异步任务（analyze_resume_task）
 │   │   │   ├── service.py               # W4-D3 CRUD 服务层（create/get/update）
 │   │   │   ├── report_export.py         # W4-D4 PDF 报告生成（ReportLab + 中文字体）
