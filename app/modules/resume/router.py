@@ -84,6 +84,9 @@ async def upload_resume(
 
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    if file_path.stat().st_size == 0:
+        file_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="空文件无法分析")
 
     create_resume_record(
         db=db,

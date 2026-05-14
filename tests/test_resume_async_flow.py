@@ -1,7 +1,7 @@
 """W4-D3 异步简历分析流程测试：service CRUD + 去重逻辑 + requirements 完整性"""
 
-import hashlib
-
+import pytest
+from celery.exceptions import Retry
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -41,8 +41,8 @@ def test_resume_record_can_be_found_by_external_resume_id():
         db.close()
 
 
-def test_duplicate_in_progress_resume_waits_without_placeholder_completed(monkeypatch):
-    """相同内容但前一份仍在 analyzing 时，不复用结果，独立完成 LLM 分析"""
+def test_duplicate_in_progress_resume_retries_without_placeholder_completed(monkeypatch):
+    """相同内容但前一份仍在 analyzing 时，后到任务保持 pending 并等待重试。"""
     from app.modules.resume import tasks
     from app.modules.resume.service import create_resume_record, update_content_hash
 
@@ -51,7 +51,7 @@ def test_duplicate_in_progress_resume_waits_without_placeholder_completed(monkey
     try:
         raw_text = "same resume text"
         target_role = "python"
-        content_hash = hashlib.sha256(f"{raw_text}{target_role}".encode()).hexdigest()
+        content_hash = tasks._resume_content_hash(raw_text, target_role)
 
         existing = create_resume_record(
             db,
@@ -80,16 +80,15 @@ def test_duplicate_in_progress_resume_waits_without_placeholder_completed(monkey
 
     monkeypatch.setattr(tasks, "SessionLocal", SessionLocal)
     monkeypatch.setattr(tasks, "parse_resume", lambda file_path: raw_text)
-    result = tasks.analyze_resume_task.run(
-        duplicate_resume_id,
-        duplicate_file_path,
-        target_role,
-    )
+    with pytest.raises(Retry):
+        tasks.analyze_resume_task.apply(
+            args=(duplicate_resume_id, duplicate_file_path, target_role),
+            throw=True,
+        )
 
     db = SessionLocal()
     try:
         refreshed = db.get(type(existing), duplicate_pk)
-        assert result == {"status": "pending", "reason": "duplicate_in_progress"}
         assert refreshed.status == "pending"
         assert refreshed.analysis_result is None
         assert refreshed.content_hash != content_hash

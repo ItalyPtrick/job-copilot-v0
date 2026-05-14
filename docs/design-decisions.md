@@ -121,8 +121,8 @@
 
 - **问题**：同一份简历重复上传会重复调用 LLM 分析（单次约 2000 input + 500 output token），浪费 API 费用且产生重复记录。
 - **踩坑**：最初按 filename 去重，但用户经常用相同文件名上传不同版本简历，导致新版本被误判为重复。
-- **解法**：对简历提取的 raw_text 做 SHA-256 哈希，`content_hash` 字段加唯一索引。上传前先查 hash，命中则直接返回已有分析结果，节省 100% API 调用。
-- **为什么 hash 文本而非文件二进制**：同一份简历的 PDF 元数据（创建时间、PDF 版本号）可能不同导致二进制 hash 不同，但文本内容完全一致。对提取后的纯文本做 hash 能正确识别"内容相同但文件不同"的情况。
+- **解法**：上传接口只保存原文件、创建 `pending` 记录并提交 Celery 任务；去重发生在 Worker 内部。任务先用 `parser.py` 提取 raw_text，再对 `{raw_text, target_role}` 做结构化 JSON 编码后计算 SHA-256，写入带唯一索引的 `content_hash` 字段。命中 `completed` 记录时直接复用分析结果；命中 `pending/analyzing` 记录时短延迟重试等待；命中 `failed` 记录时释放旧记录占用的 hash，让新记录重新分析。
+- **为什么 hash 文本 + 目标岗位而非文件二进制**：同一份简历的 PDF 元数据（创建时间、PDF 版本号）可能不同导致二进制 hash 不同，但文本内容完全一致；同时同一简历投递不同岗位时，LLM 的匹配度分析应不同，必须把 `target_role` 纳入 hash。对提取后的文本和目标岗位一起 hash，能识别“内容与岗位都相同”的重复任务，也不会误复用不同岗位的分析结果。
 
 ### Parser 策略模式与格式边界
 
@@ -135,9 +135,10 @@
 
 - **问题**：简历 LLM 分析耗时 10-30 秒，同步执行会阻塞 API 请求。
 - **解法**：Celery + Redis 做异步任务队列。Broker 和 Result Backend 均用 Redis DB 1，与主应用缓存（DB 0）隔离，避免任务消息与业务缓存 key 冲突。Worker 独立进程执行，API 只负责 `task.delay()` 提交和状态查询。
+- **为什么选 Celery 而非 asyncio.create_task**：`create_task` 是进程内协程，进程重启任务丢失、无自动重试、无监控面板。Celery 提供：① 队列化投递（Redis broker，可通过 Redis 持久化配置提升崩溃恢复能力）；② 内置重试机制（`max_retries=3, default_retry_delay=10`，LLM 偶发超时自动恢复）；③ DB 状态追踪（任务写回 `resume_records.status`，API 通过 DB 查询状态）；④ 生产可扩展（多 Worker 水平扩展、Flower 监控）。对求职项目来说，"面试时能讲清异步架构全貌"比"少一个依赖"更有价值。
 - **为什么用 Redis DB 1 而非独立 Redis 实例**：单机开发阶段无需额外进程，DB 编号隔离足够；生产环境可通过环境变量切换到独立实例，零代码改动。
   - **Windows 约束**：Celery 4+ 不支持 Windows 多进程 prefork pool，开发环境用 `--pool=solo`（单进程顺序执行）。不影响功能正确性，仅吞吐量受限；部署到 Linux 时切回默认 prefork 即可。
-  - **去重竞态处理**：`content_hash` 列 unique 约束 + `update_content_hash` 返回 bool。并发任务解析出相同内容时，后到者 commit 触发 IntegrityError → rollback → 返回 `duplicate_in_progress`，避免重复 LLM 调用。
+  - **去重竞态处理**：`content_hash` 列 unique 约束 + `update_content_hash` 返回 bool。并发任务解析出相同内容时，后到者 commit 触发 IntegrityError → rollback → Celery 短延迟重试；下一次执行会重新查询相同 `content_hash`，若先到任务已 completed，则直接复用结果。若先到任务 failed，则释放 failed 记录占用的 hash，让后到任务重新分析，避免永久 pending、重复 LLM 调用和 failed 记录长期占住去重键。
 
 ### ResumeRecord 外部标识：UUID resume_id
 

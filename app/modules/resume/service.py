@@ -1,3 +1,5 @@
+"""简历记录数据库操作：创建、查询、状态更新、去重哈希管理。"""
+
 import hashlib
 
 from sqlalchemy.orm import Session
@@ -77,6 +79,24 @@ def update_content_hash(db: Session, resume_id: str, content_hash: str) -> bool:
         # 并发场景：另一任务已写入相同哈希，调用方据此停止继续分析
         db.rollback()
         return False
+    return True
+
+
+def release_content_hash(db: Session, record: ResumeRecord) -> bool:
+    """释放 failed 记录占用的真实内容哈希，允许后续上传重新分析相同内容。"""
+    from sqlalchemy.exc import IntegrityError
+
+    record.content_hash = _placeholder_content_hash(
+        str(record.resume_id),
+        record.filename,
+        f"released:{record.target_role or ''}",
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return False
+    db.refresh(record)
     return True
 
 

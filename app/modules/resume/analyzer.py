@@ -1,4 +1,4 @@
-"""简历 AI 分析器 — 结构化 Prompt + 内容哈希去重"""
+"""简历 AI 分析器 — 结构化 Prompt。"""
 
 import hashlib
 
@@ -6,7 +6,7 @@ from app.services.llm_service import call_llm
 
 
 def content_hash(text: str) -> str:
-    """SHA-256 哈希，用于去重判断。空文本抛异常避免占住唯一索引。"""
+    """通用文本 SHA-256；任务级去重使用 tasks._resume_content_hash。"""
     if not text or not text.strip():
         raise ValueError("简历文本为空，无法计算哈希")
     return hashlib.sha256(text.encode()).hexdigest()
