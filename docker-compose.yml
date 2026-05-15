@@ -1,48 +1,67 @@
 services:
+  # FastAPI 应用
   api:
     build: .
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    env_file: .env
     environment:
-      DATABASE_URL: sqlite:////app/data/db/job_copilot.db
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/job_copilot
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - upload_data:/app/data/uploads
+      - resume_data:/app/data/resumes
       - chroma_data:/app/data/chroma
-      - sqlite_data:/app/data/db
     restart: unless-stopped
 
+  # Celery Worker
   worker:
     build: .
-    # Linux 默认 prefork pool；本地 Windows 开发用 --pool=solo（见 README）
     command: celery -A celery_app worker --loglevel=info --concurrency=2
-    env_file:
-      - .env
+    env_file: .env
     environment:
-      DATABASE_URL: sqlite:////app/data/db/job_copilot.db
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/job_copilot
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - upload_data:/app/data/uploads
+      - resume_data:/app/data/resumes
       - chroma_data:/app/data/chroma
-      - sqlite_data:/app/data/db
     restart: unless-stopped
 
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: job_copilot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis
   redis:
     image: redis:7-alpine
-    # 容器间通过 redis:6379 通信，不需要暴露到宿主机
-    # 如需本地调试，取消下一行注释
-    # ports:
-    #   - "6379:6379"
+    # 容器间通过 redis:6379 通信，不需要暴露到宿主机。
     volumes:
       - redis_data:/data
     healthcheck:
@@ -53,7 +72,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  pg_data:
   redis_data:
   upload_data:
+  resume_data:
   chroma_data:
-  sqlite_data:
