@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W4-D7 完成
+W5-D2 docker-compose.yml
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -32,5 +32,12 @@ W4-D7 完成
 - W4-D5：FastAPI 路由 router.py（5 端点）+ main.py 注册 + 基础测试 3 passed + 端到端验证 7 步全通过 ✅
 - W4-D6：测试完善（test_resume_tasks.py 9 用例 + test_resume_api.py 12 用例 + 去重/edge case）+ 全量简历定向测试 40/40 passed ✅
 - W4-D7：端到端自动化测试（5 用例）+ 代码清理（docstring）+ README 更新 + 设计决策补充 + 全量测试 182 passed + 面试复盘 ✅
+- W5-D1：Docker 概念学习 + Dockerfile 编写 + .dockerignore + requirements 瘦身（移除 Streamlit 及 27 个专属依赖）✅
 
 == 待完成步骤 ==
+- W5-D2：docker-compose.yml（.dockerignore 已在 D1 完成）
+- W5-D3：PostgreSQL 连接适配 + Alembic 迁移
+- W5-D4：docker-compose.dev.yml + 运维命令
+- W5-D5：容器内测试 + API 可达性 + 数据持久化
+- W5-D6：（Streamlit 已移除，待重新规划）
+- W5-D7：端到端验证 + 面试复习
