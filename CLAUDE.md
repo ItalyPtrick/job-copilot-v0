@@ -2,7 +2,7 @@
 
 基于 Python + FastAPI + LLM 的求职 AI 助手后端。
 
-当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试 + W4 简历智能分析全部完成。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
+当前阶段：W1 数据层 + W2 知识库 + W3 模拟面试 + W4 简历智能分析全部完成。W5 Docker 部署进行中。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
 
 ---
 

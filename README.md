@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1 数据层 + W2 知识库全部完成（含 `/kb/*` 4 个接口、上传幂等、近重复确认、Orchestrator RAG 注入、Alembic 迁移）。W3-D1 ~ W3-D7 已完成：已创建 `app/modules/interview/`、`app/modules/schedule/` 包结构，落地模拟面试基础 schema、Redis Session 管理、Skill 蓝图化出题引擎、评估引擎、自适应追问 planner、面试路由（`/interview/start`、`/interview/answer`、`/interview/evaluate`）、面试邀请解析器和日程路由（`/schedule/parse-invite`），并完成端到端验证与评估引擎 question_id 映射修复。W4-D1 ~ D7 已完成：简历解析器 `parser.py`（PDF/DOCX/TXT 策略分派）+ `analyzer.py`（结构化 Prompt）+ `ResumeRecord` 模型扩展 + Alembic 迁移 + Celery 异步任务（`tasks.py` + `service.py` + `celery_app.py`）+ content_hash 去重与进行中重复任务重试 + PDF 报告导出（`report_export.py`）+ FastAPI 路由（`router.py` 5 端点：upload/status/report/export/list）+ main.py 注册 + 端到端验证 + 测试完善（`test_resume_tasks.py` 9 用例 + `test_resume_api.py` 12 用例 + 去重/edge case 验证）。
+> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1 完成：Dockerfile + .dockerignore + 依赖瘦身移除 Streamlit）。详见 `Today_Plan/daily_progress.txt`。
 
 ---
 
@@ -41,15 +41,16 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 | 层 | 技术 |
 |---|---|
 | 后端框架 | FastAPI + Uvicorn |
-| 前端 | Streamlit |
 | LLM | OpenAI SDK |
 | ORM | SQLAlchemy 2.0 |
 | 数据库（开发） | SQLite |
-| 缓存 | Redis |
+| 数据库（部署） | SQLite（PostgreSQL 16 计划 W5-D3 接入） |
+| 缓存 + Broker | Redis 7 |
 | 数据库迁移 | Alembic |
 | 数据校验 | Pydantic v2 |
 | 异步任务 | Celery + Redis |
 | PDF 生成 | ReportLab |
+| 容器化 | Docker + Docker Compose |
 | 测试 | pytest |
 | Python | 3.11（conda 环境 `job-copilot-v0`） |
 
@@ -126,10 +127,37 @@ uvicorn app.main:app --reload
 - `/docs` 中可见日程接口：`/schedule/parse-invite`
 - `/docs` 中可见简历接口：`/resume/upload`、`/resume/{id}/status`、`/resume/{id}/report`、`/resume/{id}/export`、`/resume/list`
 
-**启动前端（可选）**
+**Docker 部署（W5-D2，可选）**
+
+当前 Compose 启动 3 个服务：API、Worker、Redis。应用使用 SQLite，数据文件持久化在 `sqlite_data` 卷（`/app/data/db/job_copilot.db`）。PostgreSQL 连接适配计划在 W5-D3 完成。
+
+> 运行前确保项目根目录有 `.env` 文件，包含 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 等必需变量（参考上方环境变量表）。Compose 通过 `env_file` 注入容器。`DATABASE_URL` 和 `REDIS_URL` 由 Compose 环境变量覆盖，`.env` 中的本地值不影响容器内连接。
+
+> **数据卷说明**：`upload_data`、`chroma_data`、`sqlite_data` 分别持久化上传文件、向量库和 SQLite 数据库。`down -v` 会清除所有卷数据（包括 SQLite）；普通 `down` 不丢数据。
+
+> **端口说明**：Redis 仅限容器间通信，未暴露到宿主机。需要本地调试时在 `docker-compose.yml` 中取消注释 ports 配置。
+
+> **Worker 说明**：容器内使用 Linux 默认 prefork pool；本地 Windows 开发需改用 `--pool=solo`（见"启动方式"段落）。
 
 ```bash
-streamlit run ui/minimal_app.py
+# 构建并启动全部服务
+docker compose up -d --build
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f api
+docker compose logs -f worker
+
+# 验证 Redis
+docker compose exec redis redis-cli ping
+
+# 停止服务
+docker compose down
+
+# 停止并清除卷数据
+docker compose down -v
 ```
 
 ### 请求示例
@@ -367,13 +395,16 @@ job-copilot-v0/
 ├── evaluation/                          # 验收测试文档
 ├── tests/                               # pytest
 ├── scripts/                             # 辅助脚本（工具调试等）
-├── ui/                                  # Streamlit 前端
+├── ui/                                  # 前端（待重构）
 ├── schemas/                             # JSON Schema
 ├── Today_Plan/                          # 学习与开发计划
 │   ├── Overall_Plan/                    # 6 周总计划
 │   ├── Each_Week/                       # 每周概览表格
 │   ├── W1/ W2/ W3/                      # 每日执行文件（D1.md ~ D7.md）
 │   └── daily_progress.txt               # 当前进度指针
+├── Dockerfile                           # W5 容器镜像构建
+├── docker-compose.yml                   # W5 多服务编排（api/worker/redis）
+├── .dockerignore                        # 构建上下文排除规则
 ├── .env                                 # API Key + DATABASE_URL（不提交 Git）
 └── README.md
 ```

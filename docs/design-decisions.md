@@ -152,3 +152,31 @@
 - **解法**：ReportLab 的 `SimpleDocTemplate` + `Paragraph` + `Table` 组合排版，生成 PDF 时延迟注册中文字体。Windows 下优先使用 `C:\Windows\Fonts\simhei.ttf`，缺失或注册失败时回退到 ReportLab 内置 `STSong-Light`，避免模块导入阶段因字体问题崩溃。LLM 文本进入 `Paragraph` 前统一 XML 转义，避免 `<`、`&` 等字符触发 ReportLab 标记解析。
 - **为什么不用 WeasyPrint / wkhtmltopdf**：ReportLab 纯 Python 实现无外部系统依赖（WeasyPrint 依赖 Cairo/Pango，wkhtmltopdf 需要 Qt WebKit），对服务端异步生成场景部署最轻量。ReportLab 对 PDF 布局的精确控制也更适合固定模板式报告。
   - **字体选择**：SimHei（黑体）是 Windows 系统自带字体，覆盖率高，笔画均匀在小字号下可读性好。SimSun（宋体）衬线在屏幕 PDF 阅读器中渲染效果不如黑体。
+
+---
+
+## Docker 部署（W5）
+
+### 基础镜像选择：python:3.11-slim
+
+- **问题**：容器化需要选 Python 基础镜像。
+- **解法**：`python:3.11-slim`，基于 Debian slim 变体，比完整版小 ~800MB。
+- **为什么不用 alpine**：Alpine 用 musl libc，PyMuPDF / psycopg2 等 C 扩展需要额外编译适配，构建时间反而更长。slim 版够用，兼容性好。
+
+### Dockerfile 分层缓存策略
+
+- **问题**：每次 `docker build` 如果重新安装全部依赖，构建时间 >5 分钟。
+- **解法**：先 `COPY requirements.txt` + `pip install`，再 `COPY . .`。代码改动只触发最后一层重建，依赖层命中缓存（秒级）。
+- **为什么不用 multi-stage build**：当前阶段镜像体积不是瓶颈，单阶段更简单直观。后续如果需要瘦身再拆。
+
+### 依赖瘦身：移除 Streamlit 及专属依赖
+
+- **问题**：`requirements.txt` 包含 Streamlit 及其 27 个专属依赖（altair/pandas/numpy/pyarrow 等），Docker 构建时 pip install 耗时 >5 分钟，且这些包在后端服务中完全不使用。
+- **解法**：移除 streamlit 及仅被 streamlit 使用的 10 个直接依赖（altair/blinker/cachetools/gitdb/GitPython/narwhals/pydeck/smmap/tornado/watchdog），以及 17 个数据栈残留包。构建上下文从 1.73MB 降到 100KB。
+- **为什么移除而非拆分 requirements**：Streamlit 前端本地运行即可（`streamlit run`），不需要打包进后端镜像。单一 requirements.txt 维护成本最低，后续需要 Streamlit 时单独加回。
+
+### .dockerignore 提前创建
+
+- **问题**：Docker 构建上下文扫描 `.pytest_tmp` 目录时遇到 Windows 权限错误（Access is denied），导致构建失败。
+- **踩坑**：原计划 D2 创建 .dockerignore，但 D1 构建时就需要。
+- **解法**：将 .dockerignore 创建提前到 D1，排除 `.git`/`.env`/`__pycache__`/`.pytest_tmp`/`data/`/`*.db` 等目录。
