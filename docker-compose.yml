@@ -1,0 +1,59 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////app/data/db/job_copilot.db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - upload_data:/app/data/uploads
+      - chroma_data:/app/data/chroma
+      - sqlite_data:/app/data/db
+    restart: unless-stopped
+
+  worker:
+    build: .
+    # Linux 默认 prefork pool；本地 Windows 开发用 --pool=solo（见 README）
+    command: celery -A celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////app/data/db/job_copilot.db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - upload_data:/app/data/uploads
+      - chroma_data:/app/data/chroma
+      - sqlite_data:/app/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # 容器间通过 redis:6379 通信，不需要暴露到宿主机
+    # 如需本地调试，取消下一行注释
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  upload_data:
+  chroma_data:
+  sqlite_data:
