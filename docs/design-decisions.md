@@ -180,3 +180,12 @@
 - **问题**：Docker 构建上下文扫描 `.pytest_tmp` 目录时遇到 Windows 权限错误（Access is denied），导致构建失败。
 - **踩坑**：原计划 D2 创建 .dockerignore，但 D1 构建时就需要。
 - **解法**：将 .dockerignore 创建提前到 D1，排除 `.git`/`.env`/`__pycache__`/`.pytest_tmp`/`data/`/`*.db` 等目录。
+
+### docker-compose 服务编排
+
+- **问题**：项目有 4 个服务（FastAPI API、Celery Worker、PostgreSQL、Redis），需要一键启动并控制启动顺序。
+- **解法**：`docker-compose.yml` 定义 4 个服务 + 4 个命名卷。api 和 worker 共用 Dockerfile，worker 覆盖 `command` 启动 Celery。postgres/redis 配 `healthcheck`，api/worker 用 `depends_on` + `condition: service_healthy` 确保依赖就绪后再启动。
+- **为什么用 PostgreSQL 替换 SQLite**：SQLite 是文件级数据库，容器内多进程（api + worker）并发写入有锁冲突风险；PostgreSQL 是服务级数据库，天然支持并发。Docker 环境下 PostgreSQL 零额外运维成本（Compose 一条命令启动），且与生产环境一致。
+  - **踩坑**：`psycopg2-binary` 未在 requirements.txt 中，首次启动报 `ModuleNotFoundError: No module named 'psycopg2'`。SQLAlchemy 的 PostgreSQL 方言依赖此驱动。
+- **环境变量覆盖**：`environment` 中的 `DATABASE_URL` / `REDIS_URL` / `CELERY_BROKER_URL` 覆盖 `.env` 中的本地值，容器内用服务名（`postgres:5432`、`redis:6379`）通信，不用 localhost。
+- **移除 `version: "3.8"`**：Compose V2 已废弃 version 属性，保留会产生 warning。

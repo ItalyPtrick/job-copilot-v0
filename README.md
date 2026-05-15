@@ -31,7 +31,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - `app/skills/python_backend.md` 已作为首个面试方向 Skill 文件落地，用来约束考察范围、难度分布和参考知识库 collection
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
-- 任务执行结果自动持久化到 SQLite（`task_records` 表），知识库上传记录写入 `knowledge_documents` 表；向量数据持久化到 `data/chroma/`
+- 任务执行结果自动持久化到关系数据库（本地默认 SQLite，Compose 使用 PostgreSQL），知识库上传记录写入 `knowledge_documents` 表；向量数据持久化到 `data/chroma/`
 - FastAPI `lifespan` 事件当前仍会自动建表；为避免本地库结构落后，项目推荐在初始化与升级时显式执行 `alembic upgrade head`
 
 ---
@@ -44,7 +44,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 | LLM | OpenAI SDK |
 | ORM | SQLAlchemy 2.0 |
 | 数据库（开发） | SQLite |
-| 数据库（部署） | SQLite（PostgreSQL 16 计划 W5-D3 接入） |
+| 数据库（部署） | PostgreSQL 16 |
 | 缓存 + Broker | Redis 7 |
 | 数据库迁移 | Alembic |
 | 数据校验 | Pydantic v2 |
@@ -129,13 +129,13 @@ uvicorn app.main:app --reload
 
 **Docker 部署（W5-D2，可选）**
 
-当前 Compose 启动 3 个服务：API、Worker、Redis。应用使用 SQLite，数据文件持久化在 `sqlite_data` 卷（`/app/data/db/job_copilot.db`）。PostgreSQL 连接适配计划在 W5-D3 完成。
+当前 Compose 启动 4 个服务：API、Worker、PostgreSQL、Redis。应用使用 PostgreSQL，数据持久化在 `pg_data` 卷。
 
 > 运行前确保项目根目录有 `.env` 文件，包含 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 等必需变量（参考上方环境变量表）。Compose 通过 `env_file` 注入容器。`DATABASE_URL` 和 `REDIS_URL` 由 Compose 环境变量覆盖，`.env` 中的本地值不影响容器内连接。
 
-> **数据卷说明**：`upload_data`、`chroma_data`、`sqlite_data` 分别持久化上传文件、向量库和 SQLite 数据库。`down -v` 会清除所有卷数据（包括 SQLite）；普通 `down` 不丢数据。
+> **数据卷说明**：`pg_data`、`redis_data`、`upload_data`、`resume_data`、`chroma_data` 分别持久化 PostgreSQL、Redis、知识库上传文件、简历文件和向量库。`down -v` 会清除所有卷数据；普通 `down` 不丢数据。
 
-> **端口说明**：Redis 仅限容器间通信，未暴露到宿主机。需要本地调试时在 `docker-compose.yml` 中取消注释 ports 配置。
+> **端口说明**：API 暴露 `8000`，PostgreSQL 暴露 `5432`；Redis 仅限容器间通信，未暴露到宿主机。
 
 > **Worker 说明**：容器内使用 Linux 默认 prefork pool；本地 Windows 开发需改用 `--pool=solo`（见"启动方式"段落）。
 
