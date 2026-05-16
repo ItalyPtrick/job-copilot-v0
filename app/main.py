@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app.orchestrators.job_copilot_orchestrator import execute_task
 from app.types.task_result import TaskResult
 from contextlib import asynccontextmanager
-from app.database.connection import engine, Base
+from app.database.connection import engine, Base, DATABASE_URL
 from app.modules.knowledge_base.router import router as kb_router
 from app.modules.interview.router import router as interview_router
 from app.modules.schedule.router import router as schedule_router
@@ -14,8 +14,10 @@ from app.modules.resume.router import router as resume_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时创建表（开发环境用，生产环境用 Alembic）
-    Base.metadata.create_all(bind=engine)
+    # SQLite 开发环境：启动时自动建表；
+    # PostgreSQL 生产环境：交给 Alembic 管理，避免 create_all 与迁移冲突。
+    if DATABASE_URL.startswith("sqlite"):
+        Base.metadata.create_all(bind=engine)
     yield
 
 

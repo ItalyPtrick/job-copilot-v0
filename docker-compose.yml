@@ -18,6 +18,12 @@ services:
       - upload_data:/app/data/uploads
       - resume_data:/app/data/resumes
       - chroma_data:/app/data/chroma
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   # Celery Worker
