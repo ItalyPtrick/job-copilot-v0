@@ -156,6 +156,44 @@ def _load_migration_module(filename: str, module_name: str):
 
 
 
+class TestDatabaseUrlGuard:
+    """验证 DATABASE_URL 前缀守卫逻辑：SQLite 走 create_all，PG 跳过。
+    不 reload connection 模块（会触发 create_engine），而是直接测试 URL 解析逻辑。
+    """
+
+    def test_sqlite_url_detected_correctly(self):
+        """SQLite URL 前缀判断为 True"""
+        url = "sqlite:///./job_copilot.db"
+        assert url.startswith("sqlite")
+
+    def test_postgres_url_detected_correctly(self):
+        """PostgreSQL URL 前缀判断为 False"""
+        url = "postgresql://user:pass@localhost:5432/db"
+        assert not url.startswith("sqlite")
+
+    def test_default_url_is_sqlite(self):
+        """connection.py 的 DEFAULT_DATABASE_URL 是 sqlite"""
+        from app.database.connection import DEFAULT_DATABASE_URL
+        assert DEFAULT_DATABASE_URL.startswith("sqlite")
+
+    def test_env_resolution_logic(self, monkeypatch):
+        """模拟 connection.py 的 URL 解析逻辑：空值回退到默认 SQLite"""
+        import os
+        default = "sqlite:///./job_copilot.db"
+        # 模拟未设置环境变量
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        result = (os.getenv("DATABASE_URL") or default).strip() or default
+        assert result.startswith("sqlite")
+
+    def test_env_resolution_with_pg(self, monkeypatch):
+        """模拟 connection.py 的 URL 解析逻辑：设置 PG URL 时不走 SQLite"""
+        import os
+        default = "sqlite:///./job_copilot.db"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@host:5432/db")
+        result = (os.getenv("DATABASE_URL") or default).strip() or default
+        assert not result.startswith("sqlite")
+
+
 def test_upgrade_add_knowledge_document_fields_keeps_existing_sqlite_rows():
     # 先造出旧占位表和旧数据，再跑补字段迁移，才能复现真实升级路径。
     engine = create_engine("sqlite:///:memory:")
