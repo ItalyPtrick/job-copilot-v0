@@ -23,6 +23,8 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 | `OPENAI_EMBEDDING_MODEL`    | 向量模型名称                                    |
 | `DATABASE_URL`              | 数据库连接串，默认 `sqlite:///./job_copilot.db` |
 | `REDIS_URL`                 | Redis 连接串，默认 `redis://localhost:6379/0`   |
+| `CELERY_BROKER_URL`         | Celery broker，默认 `redis://localhost:6379/1`  |
+| `POSTGRES_PASSWORD`         | Docker Compose 中 PG 密码，默认 `postgres`      |
 
 补充说明：
 - 聊天模型读取 `OPENAI_*`，embedding 读取 `OPENAI_EMBEDDING_*`，两者可走不同端点。

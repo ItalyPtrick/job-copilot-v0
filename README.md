@@ -210,6 +210,8 @@ docker compose -f docker-compose.dev.yml down -v
 | 停止服务 | `docker compose down` |
 | 停止并清除数据 | `docker compose down -v` |
 
+> **注意**：`docker-compose.yml`（全量）与 `docker-compose.dev.yml`（仅基础设施）暴露相同的 PG/Redis 端口，不可同时 `up`，否则端口冲突。全量部署用前者，本地开发用后者。
+
 ---
 
 ### 请求示例

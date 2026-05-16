@@ -197,3 +197,10 @@
 - **为什么不用 SQLAlchemy 的 `connect_args` 自动检测**：SQLAlchemy 不会自动为 SQLite 添加 `check_same_thread`，这是 Python sqlite3 模块的限制（默认不允许跨线程共享连接），必须显式设置。
   - **踩坑**：`.dockerignore` 误排 `alembic.ini`，容器内 `alembic upgrade head` 报 `No 'script_location' key found`。移除排除项后解决。
   - **踩坑**：PostgreSQL 容器首次启动时表已存在（D1 手动创建），`alembic upgrade head` 报 `DuplicateTable`。用 `alembic stamp head` 标记当前状态解决。
+
+### Volume 权限与 entrypoint 脚本
+
+- **问题**：Dockerfile 中 `USER appuser` 切换非特权用户后，Docker named volume 挂载的 `data/uploads`、`data/resumes`、`data/chroma` 目录仍由 root 拥有，容器内文件上传全部报 `PermissionError`。
+- **踩坑**：Dockerfile 中 `chown -R appuser:appuser /app` 只影响镜像层，volume 挂载发生在容器启动时，覆盖镜像中的目录权限。
+- **解法**：新增 `docker-entrypoint.sh`，以 root 运行 `mkdir -p` + `chown -R` 确保 volume 目录可写，再 `gosu appuser` 切换到非特权用户执行 CMD。Dockerfile 中 `ENTRYPOINT` 放在 `USER appuser` 之前，确保 entrypoint 以 root 身份运行。
+- **为什么用 gosu 而非 su/sudo**：`gosu` 专为容器设计，直接 exec 替换进程（无 shell 包裹），信号传递正确；`su` 会残留父 shell 进程，`sudo` 需要额外配置。
