@@ -9,7 +9,7 @@ from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
-from app.database.connection import Base
+from app.database.connection import Base, _build_connect_args
 from app.database.crud.task_crud import get_recent_tasks, get_tasks_by_type
 from app.database.models.task_record import TaskRecord
 
@@ -304,3 +304,28 @@ def test_upgrade_unique_constraint_dedup_preserves_completed_and_legacy_hashes()
     assert rows[2]["filename"] == "c.txt"
     assert rows[2]["status"] == "completed"
     assert rows[2]["file_hash"] == "abc123"
+
+
+
+def test_sqlite_connect_args_keep_check_same_thread_false(monkeypatch):
+    monkeypatch.delenv("DB_CONNECT_TIMEOUT", raising=False)
+
+    result = _build_connect_args("sqlite:///./job_copilot.db")
+
+    assert result == {"check_same_thread": False}
+
+
+def test_postgresql_connect_args_default_to_three_second_timeout(monkeypatch):
+    monkeypatch.delenv("DB_CONNECT_TIMEOUT", raising=False)
+
+    result = _build_connect_args("postgresql://postgres:postgres@postgres:5432/job_copilot")
+
+    assert result == {"connect_timeout": 3}
+
+
+def test_postgresql_connect_args_allow_env_override(monkeypatch):
+    monkeypatch.setenv("DB_CONNECT_TIMEOUT", "5")
+
+    result = _build_connect_args("postgresql://postgres:postgres@postgres:5432/job_copilot")
+
+    assert result == {"connect_timeout": 5}

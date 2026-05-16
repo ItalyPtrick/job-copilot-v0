@@ -9,11 +9,16 @@ DEFAULT_DATABASE_URL = "sqlite:///./job_copilot.db"
 DATABASE_URL = (os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL).strip() or DEFAULT_DATABASE_URL
 
 # SQLite 需要 check_same_thread=False 才能在多线程（FastAPI）中共享连接；
-# PostgreSQL 不需要此参数，传空 dict 即可。
-connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
+# PostgreSQL 健康检查需要有连接超时，避免网络异常时长时间挂起。
+def _build_connect_args(database_url: str) -> dict[str, int | bool]:
+    if database_url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    if database_url.startswith("postgresql"):
+        return {"connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "3"))}
+    return {}
 
+
+connect_args = _build_connect_args(DATABASE_URL)
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine)
 
