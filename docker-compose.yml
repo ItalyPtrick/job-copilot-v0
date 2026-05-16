@@ -1,6 +1,7 @@
 services:
   # FastAPI 应用
   api:
+    image: job-copilot:latest
     build: .
     ports:
       - "8000:8000"
@@ -19,7 +20,7 @@ services:
       - resume_data:/app/data/resumes
       - chroma_data:/app/data/chroma
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -28,6 +29,7 @@ services:
 
   # Celery Worker
   worker:
+    image: job-copilot:latest
     build: .
     command: celery -A celery_app worker --loglevel=info --concurrency=2
     env_file: .env
