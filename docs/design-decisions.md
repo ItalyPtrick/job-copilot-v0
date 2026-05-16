@@ -189,3 +189,11 @@
   - **踩坑**：`psycopg2-binary` 未在 requirements.txt 中，首次启动报 `ModuleNotFoundError: No module named 'psycopg2'`。SQLAlchemy 的 PostgreSQL 方言依赖此驱动。
 - **环境变量覆盖**：`environment` 中的 `DATABASE_URL` / `REDIS_URL` / `CELERY_BROKER_URL` 覆盖 `.env` 中的本地值，容器内用服务名（`postgres:5432`、`redis:6379`）通信，不用 localhost。
 - **移除 `version: "3.8"`**：Compose V2 已废弃 version 属性，保留会产生 warning。
+
+### SQLAlchemy 多数据库适配
+
+- **问题**：本地开发用 SQLite，Docker 部署用 PostgreSQL，代码层需要兼容两种数据库。
+- **解法**：`connection.py` 根据 `DATABASE_URL` 前缀判断是否为 SQLite，条件添加 `check_same_thread=False`；`alembic/env.py` 从环境变量读取 DATABASE_URL 覆盖 alembic.ini 的硬编码值；移除 `.dockerignore` 中对 `alembic.ini` 的误排除，确保容器内可运行迁移。
+- **为什么不用 SQLAlchemy 的 `connect_args` 自动检测**：SQLAlchemy 不会自动为 SQLite 添加 `check_same_thread`，这是 Python sqlite3 模块的限制（默认不允许跨线程共享连接），必须显式设置。
+  - **踩坑**：`.dockerignore` 误排 `alembic.ini`，容器内 `alembic upgrade head` 报 `No 'script_location' key found`。移除排除项后解决。
+  - **踩坑**：PostgreSQL 容器首次启动时表已存在（D1 手动创建），`alembic upgrade head` 报 `DuplicateTable`。用 `alembic stamp head` 标记当前状态解决。
