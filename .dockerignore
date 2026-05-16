@@ -16,6 +16,5 @@ docs/
 ui/
 CLAUDE.md
 README.md
-alembic.ini
 *.egg-info/
 .gitignore

@@ -5,12 +5,16 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.database.connection import Base
+from app.database.connection import Base, DATABASE_URL
 from app.database.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# 用环境变量 DATABASE_URL 覆盖 alembic.ini 中的硬编码值，
+# 确保容器内（PostgreSQL）和本地（SQLite）使用各自的数据库。
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
