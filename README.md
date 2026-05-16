@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1 完成：Dockerfile + .dockerignore + 依赖瘦身移除 Streamlit）。详见 `Today_Plan/daily_progress.txt`。
+> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1~D4 完成：Dockerfile + Compose + PostgreSQL 适配 + dev compose/运维命令）。详见 `Today_Plan/daily_progress.txt`。
 
 ---
 
@@ -32,7 +32,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 - 模拟面试出题引擎已支持从 Skill Markdown 构建蓝图，按目标难度 rubric、已问题目和已覆盖考点生成结构化题目，并提供追问生成函数
 - 模拟面试评估引擎已实现按主问题轮次评分（区分主问题、追问和回答），通过 `_extract_interview_turns` 归组、`evaluate_batch` 分批 LLM 评估、`generate_report` 汇总报告；消息结构通过 `InterviewMessageMetadata` 契约统一
 - 任务执行结果自动持久化到关系数据库（本地默认 SQLite，Compose 使用 PostgreSQL），知识库上传记录写入 `knowledge_documents` 表；向量数据持久化到 `data/chroma/`
-- FastAPI `lifespan` 事件当前仍会自动建表；为避免本地库结构落后，项目推荐在初始化与升级时显式执行 `alembic upgrade head`
+- SQLite 本地开发可由 `lifespan` 自动建表；PostgreSQL 环境使用 Alembic 迁移（`alembic upgrade head`）
 
 ---
 
@@ -143,6 +143,9 @@ uvicorn app.main:app --reload
 # 构建并启动全部服务
 docker compose up -d --build
 
+# 首次运行：执行数据库迁移
+docker compose exec api alembic upgrade head
+
 # 查看服务状态
 docker compose ps
 
@@ -159,6 +162,55 @@ docker compose down
 # 停止并清除卷数据
 docker compose down -v
 ```
+
+**Docker 开发模式（W5-D4）**
+
+开发时只需启动 PostgreSQL + Redis，API 和 Worker 在本地运行，代码改动即时生效、无需 rebuild。
+
+> `.env` 中的 `DATABASE_URL` 和 `REDIS_URL` 需指向 `localhost`（默认已是）：
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/job_copilot
+REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/1
+```
+
+```bash
+# 启动基础设施
+docker compose -f docker-compose.dev.yml up -d
+
+# 本地启动 API（热重载）
+uvicorn app.main:app --reload
+
+# 本地启动 Worker（Windows 用 --pool=solo）
+celery -A celery_app worker --loglevel=info --pool=solo
+
+# 停止基础设施
+docker compose -f docker-compose.dev.yml down
+
+# 停止并清除数据
+docker compose -f docker-compose.dev.yml down -v
+```
+
+**运维命令速查**
+
+| 场景 | 命令 |
+|---|---|
+| 构建镜像 | `docker compose build` |
+| 启动全部服务 | `docker compose up -d` |
+| 仅启动基础设施 | `docker compose -f docker-compose.dev.yml up -d` |
+| 查看运行状态 | `docker compose ps` |
+| 查看 API 日志 | `docker compose logs -f api` |
+| 查看 Worker 日志 | `docker compose logs -f worker` |
+| 进入 API 容器 | `docker compose exec api bash` |
+| 容器内跑测试 | `docker compose exec api pytest tests/ -v` |
+| 容器内迁移 | `docker compose exec api alembic upgrade head` |
+| 容器内 psql | `docker compose exec postgres psql -U postgres -d job_copilot` |
+| 容器内 redis-cli | `docker compose exec redis redis-cli` |
+| 停止服务 | `docker compose down` |
+| 停止并清除数据 | `docker compose down -v` |
+
+---
 
 ### 请求示例
 
@@ -326,7 +378,7 @@ alembic upgrade head && alembic downgrade base && alembic upgrade head
 ```
 job-copilot-v0/
 ├── app/
-│   ├── main.py                          # FastAPI 入口 + lifespan 自动建表
+│   ├── main.py                          # FastAPI 入口 + lifespan（SQLite 自动建表，PG 由 Alembic 管理）
 │   ├── orchestrators/
 │   │   └── job_copilot_orchestrator.py  # 任务主流程 + trace + 持久化
 │   ├── modules/
@@ -403,7 +455,8 @@ job-copilot-v0/
 │   ├── W1/ W2/ W3/                      # 每日执行文件（D1.md ~ D7.md）
 │   └── daily_progress.txt               # 当前进度指针
 ├── Dockerfile                           # W5 容器镜像构建
-├── docker-compose.yml                   # W5 多服务编排（api/worker/redis）
+├── docker-compose.yml                   # W5 生产编排（api/worker/postgres/redis）
+├── docker-compose.dev.yml               # W5 开发编排（仅 postgres/redis）
 ├── .dockerignore                        # 构建上下文排除规则
 ├── .env                                 # API Key + DATABASE_URL（不提交 Git）
 └── README.md
@@ -412,7 +465,7 @@ job-copilot-v0/
 **数据层说明**
 
 - 每次 `POST /task` 请求的结果自动持久化到 `task_records` 表
-- 开发环境：`lifespan` 自动建表；生产环境：使用 `alembic upgrade head`
+- SQLite 本地开发可由 lifespan 自动建表；PostgreSQL 环境使用 Alembic 迁移
 - 数据库连接字符串通过 `DATABASE_URL` 环境变量配置，默认 `sqlite:///./job_copilot.db`
 
 **安全提示**
