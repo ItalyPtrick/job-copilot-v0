@@ -7,7 +7,8 @@ import redis
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # 统一 Redis 客户端，供缓存封装函数复用。
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+# socket_timeout=3：防止健康检查等场景下连接挂起
+redis_client = redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=3)
 
 
 def set_session(session_id: str, data: dict, ttl: int = 3600) -> None:

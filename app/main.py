@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from app.orchestrators.job_copilot_orchestrator import execute_task
 from app.types.task_result import TaskResult
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from app.database.connection import engine, Base, DATABASE_URL
+from app.cache.redis_client import redis_client
 from app.modules.knowledge_base.router import router as kb_router
 from app.modules.interview.router import router as interview_router
 from app.modules.schedule.router import router as schedule_router
@@ -36,6 +38,39 @@ class TaskRequest(BaseModel):
 @app.get("/")
 def index():
     return "The server is running"
+
+
+@app.get("/health")
+def health_check():
+    """容器健康检查：分别探测 PG 和 Redis 连通性。
+
+    Docker healthcheck 调用此端点，任一组件异常返回 503，
+    让 Compose 知道服务未就绪。
+    """
+    components = {}
+    healthy = True
+
+    # PG：执行最轻量查询验证连接池可用
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        components["postgres"] = "ok"
+    except Exception as e:
+        components["postgres"] = f"error: {type(e).__name__}"
+        healthy = False
+
+    # Redis：PING 验证 broker/cache 连通（socket_timeout 在 redis_client.py 配置）
+    try:
+        redis_client.ping()
+        components["redis"] = "ok"
+    except Exception as e:
+        components["redis"] = f"error: {type(e).__name__}"
+        healthy = False
+
+    return JSONResponse(
+        content={"status": "healthy" if healthy else "unhealthy", **components},
+        status_code=200 if healthy else 503,
+    )
 
 
 @app.post("/task")

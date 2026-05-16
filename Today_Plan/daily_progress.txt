@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-W5-D5 容器内测试 + API 可达性 + 数据持久化 ✅
+W5-D6 健康检查端点 + Docker 构建优化 ✅
 
 == 已完成步骤 ==
 - W1-D1：ORM 概念 + 安装依赖 + 数据库连接 ✅
@@ -37,8 +37,8 @@ W5-D5 容器内测试 + API 可达性 + 数据持久化 ✅
 - W5-D3：PostgreSQL 连接适配（connection.py 条件判断 + alembic.ini 环境变量 + .dockerignore 修复）+ Alembic 迁移 + 本地 8 passed ✅
 - W5-D4：docker-compose.dev.yml（仅 PG + Redis）+ README 运维命令速查 + .env 补 DATABASE_URL ✅
 - W5-D5：容器内全量测试（187 passed）+ API 端点验证（5 模块 200）+ 数据持久化验证 + entrypoint 权限修复 ✅
+- W5-D6：/health 健康检查端点 + Dockerfile multi-stage build + uv 加速 + docker-compose.yml 显式 image: job-copilot:latest，修复 docker build -t 与 Compose 镜像 tag 不一致 ✅
 
 == 待完成步骤 ==
-- W5-D6：（Streamlit 已移除，待重新规划）
-- W5-D6：（Streamlit 已移除，待重新规划）
 - W5-D7：端到端验证 + 面试复习
+

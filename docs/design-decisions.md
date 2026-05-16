@@ -163,11 +163,12 @@
 - **解法**：`python:3.11-slim`，基于 Debian slim 变体，比完整版小 ~800MB。
 - **为什么不用 alpine**：Alpine 用 musl libc，PyMuPDF / psycopg2 等 C 扩展需要额外编译适配，构建时间反而更长。slim 版够用，兼容性好。
 
-### Dockerfile 分层缓存策略
+### Dockerfile 分层缓存策略 + multi-stage build + uv
 
-- **问题**：每次 `docker build` 如果重新安装全部依赖，构建时间 >5 分钟。
-- **解法**：先 `COPY requirements.txt` + `pip install`，再 `COPY . .`。代码改动只触发最后一层重建，依赖层命中缓存（秒级）。
-- **为什么不用 multi-stage build**：当前阶段镜像体积不是瓶颈，单阶段更简单直观。后续如果需要瘦身再拆。
+- **问题**：每次 `docker build` 如果重新安装全部依赖，构建时间 >5 分钟（pip 依赖解析慢 + 下载慢）。
+- **解法**：Dockerfile 改为两阶段构建——Stage 1 (builder) 临时安装 uv 并安装依赖，随后卸载 uv；Stage 2 (runtime) 通过 `COPY --from=builder /usr/local /usr/local` 复制已安装的运行依赖。uv 是 Rust 写的 pip 替代品，依赖解析从几分钟降到数秒，整体构建从 500s+ 降到约 150s。`--mount=type=cache,target=/root/.cache/uv` 跨构建保留下载缓存。
+- **踩坑**：如果只在 builder 里 `pip install uv`，再把 `/usr/local` 整体复制到 runtime，uv 也会进入最终镜像。安装依赖后执行 `pip uninstall -y uv`，让“runtime 不含 uv”的设计与镜像内容一致。
+- **为什么用 multi-stage**：运行镜像只保留运行依赖和应用代码，不保留构建期工具，体积更小、攻击面更小。
 
 ### 依赖瘦身：移除 Streamlit 及专属依赖
 
@@ -204,3 +205,16 @@
 - **踩坑**：Dockerfile 中 `chown -R appuser:appuser /app` 只影响镜像层，volume 挂载发生在容器启动时，覆盖镜像中的目录权限。
 - **解法**：新增 `docker-entrypoint.sh`，以 root 运行 `mkdir -p` + `chown -R` 确保 volume 目录可写，再 `gosu appuser` 切换到非特权用户执行 CMD。Dockerfile 中 `ENTRYPOINT` 放在 `USER appuser` 之前，确保 entrypoint 以 root 身份运行。
 - **为什么用 gosu 而非 su/sudo**：`gosu` 专为容器设计，直接 exec 替换进程（无 shell 包裹），信号传递正确；`su` 会残留父 shell 进程，`sudo` 需要额外配置。
+
+### 健康检查端点：/health
+
+- **问题**：Docker Compose healthcheck 原来用 `urllib.request.urlopen('http://localhost:8000/')` 检查根路径，只验证进程存活，不验证 PG/Redis 连通性。
+- **解法**：新增 `GET /health` 端点，分别执行 `SELECT 1`（PG）和 `redis_client.ping()`（Redis），任一异常返回 503。PostgreSQL 连接设置 `connect_timeout=3`，Redis 设置 `socket_timeout=3`，docker-compose.yml healthcheck 指向 `/health` 且 `urlopen(..., timeout=4)`。
+- **为什么不在根路径做 healthcheck**：根路径只验证 uvicorn 进程活着，PG 连接池耗尽或 Redis 宕机时根路径仍返回 200，但服务实际不可用。`/health` 验证依赖组件连通性，让 Compose 的 `depends_on: condition: service_healthy` 真正生效。
+  - **踩坑**：`redis.from_url()` 默认无 socket_timeout，`ping()` 在 Redis 未就绪时无限阻塞，导致 `/health` 返回空响应。加 `socket_timeout=3` 解决。
+
+### docker compose build 与 docker build -t 镜像 tag 不一致
+
+- **问题**：`docker build -t job-copilot .` 构建的镜像 tag 是 `job-copilot:latest`，但未显式配置 `image:` 时，`docker compose up -d` 使用自动命名的 `job-copilot-v0-api:latest`（项目名-服务名）。两者是不同镜像，手动 build 的代码不会进入 Compose 容器。
+- **踩坑**：反复 `docker build --no-cache` + `docker compose up -d`，容器里始终是旧代码，`/health` 端点一直 404。排查多次构建才发现是镜像 tag 不一致。
+- **解法**：在 `docker-compose.yml` 中给 `api` 和 `worker` 显式指定 `image: job-copilot:latest`，让手动 `docker build -t job-copilot .` 与 Compose 使用同一 tag。日常仍推荐 `docker compose build` 或 `docker compose up -d --build`，因为它会按 Compose 文件中的服务配置构建。

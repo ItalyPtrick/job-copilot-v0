@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1~D4 完成：Dockerfile + Compose + PostgreSQL 适配 + dev compose/运维命令）。详见 `Today_Plan/daily_progress.txt`。
+> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1~D6 完成：Dockerfile + Compose + PostgreSQL 适配 + dev compose + 容器内测试 + 健康检查 + 构建优化）。详见 `Today_Plan/daily_progress.txt`。
 
 ---
 
@@ -121,6 +121,7 @@ uvicorn app.main:app --reload
 
 启动成功后：
 - 根路径 `http://127.0.0.1:8000/` 返回 `"The server is running"`
+- 健康检查：`http://127.0.0.1:8000/health` 返回各组件状态（PG + Redis）
 - 交互式文档：`http://127.0.0.1:8000/docs`
 - `/docs` 中可见知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
 - `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
@@ -139,12 +140,17 @@ uvicorn app.main:app --reload
 
 > **Worker 说明**：容器内使用 Linux 默认 prefork pool；本地 Windows 开发需改用 `--pool=solo`（见"启动方式"段落）。
 
+> **镜像说明**：`api` 和 `worker` 在 `docker-compose.yml` 中显式使用 `job-copilot:latest`。推荐使用 `docker compose build` 或 `docker compose up -d --build`；如果手动运行 `docker build -t job-copilot .`，Compose 也会引用同一个镜像 tag，避免手动 build 与 Compose 容器代码不一致。
+
 ```bash
 # 构建并启动全部服务
 docker compose up -d --build
 
 # 首次运行：执行数据库迁移
 docker compose exec api alembic upgrade head
+
+# 验证健康检查
+curl http://localhost:8000/health
 
 # 查看服务状态
 docker compose ps
@@ -199,6 +205,7 @@ docker compose -f docker-compose.dev.yml down -v
 | 构建镜像 | `docker compose build` |
 | 启动全部服务 | `docker compose up -d` |
 | 仅启动基础设施 | `docker compose -f docker-compose.dev.yml up -d` |
+| 健康检查 | `curl http://localhost:8000/health` |
 | 查看运行状态 | `docker compose ps` |
 | 查看 API 日志 | `docker compose logs -f api` |
 | 查看 Worker 日志 | `docker compose logs -f worker` |
