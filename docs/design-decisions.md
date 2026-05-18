@@ -213,6 +213,18 @@
 - **为什么不在根路径做 healthcheck**：根路径只验证 uvicorn 进程活着，PG 连接池耗尽或 Redis 宕机时根路径仍返回 200，但服务实际不可用。`/health` 验证依赖组件连通性，让 Compose 的 `depends_on: condition: service_healthy` 真正生效。
   - **踩坑**：`redis.from_url()` 默认无 socket_timeout，`ping()` 在 Redis 未就绪时无限阻塞，导致 `/health` 返回空响应。加 `socket_timeout=3` 解决。
 
+### 为什么用 Docker Compose 而非 K8s
+
+- **问题**：4 个服务需要容器化编排，有 Compose 和 Kubernetes 两种主流方案。
+- **解法**：Docker Compose。
+- **为什么不用 K8s**：项目是单人求职作品，部署目标是本地演示 + 单机服务器。Compose 一条命令启动 4 个服务，healthcheck 控制启动顺序，Volume 持久化数据，对当前规模完全够用。K8s 的价值在于多节点调度、自动扩缩容、滚动更新——这些在单机演示场景中用不上，反而引入 kubectl / minikube / YAML 编排的额外学习和运维成本。面试时能讲清 Compose 的编排机制（depends_on + healthcheck + Volume）和适用边界，比"我用了 K8s 但只跑了一个 Pod"更有说服力。
+
+### 为什么开发环境只容器化基础设施
+
+- **问题**：全量 Docker 部署（api + worker + PG + Redis）和开发环境的需求冲突——容器内代码改动需要 rebuild 才能生效，无法热重载和断点调试。
+- **解法**：`docker-compose.dev.yml` 只启动 PostgreSQL + Redis，API 和 Worker 在本地运行。
+- **为什么这样分**：开发阶段代码高频迭代，热重载（`uvicorn --reload`）和断点调试是刚需。全量容器化每次改代码都要 rebuild 镜像（~30s），开发体验差。基础设施（PG/Redis）容器化零运维成本，本地代码直连容器端口，兼顾"环境一致性"和"开发效率"。全量 Docker 部署留给演示和 CI 场景。
+
 ### docker compose build 与 docker build -t 镜像 tag 不一致
 
 - **问题**：`docker build -t job-copilot .` 构建的镜像 tag 是 `job-copilot:latest`，但未显式配置 `image:` 时，`docker compose up -d` 使用自动命名的 `job-copilot-v0-api:latest`（项目名-服务名）。两者是不同镜像，手动 build 的代码不会进入 Compose 容器。

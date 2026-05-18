@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1~W4 全部完成。W5 Docker 部署进行中（D1~D6 完成：Dockerfile + Compose + PostgreSQL 适配 + dev compose + 容器内测试 + 健康检查 + 构建优化）。详见 `Today_Plan/daily_progress.txt`。
+> **当前进度**：W1~W5 全部完成。详见 `Today_Plan/daily_progress.txt`。
 
 ---
 
@@ -88,7 +88,7 @@ alembic upgrade head
 
 **5. 配置环境变量**
 
-在项目根目录创建 `.env` 文件（不要提交到 Git）：
+从 `.env.example` 复制为 `.env`（不要提交到 Git），再填入实际密钥：
 
 ```
 # chat
@@ -121,18 +121,44 @@ uvicorn app.main:app --reload
 
 启动成功后：
 - 根路径 `http://127.0.0.1:8000/` 返回 `"The server is running"`
-- 健康检查：`http://127.0.0.1:8000/health` 返回各组件状态（PG + Redis）
+- 健康检查：`http://127.0.0.1:8000/health` 返回各组件状态（数据库 + Redis；Compose 环境为 PostgreSQL + Redis）
 - 交互式文档：`http://127.0.0.1:8000/docs`
 - `/docs` 中可见知识库接口：`/kb/upload`、`/kb/query`、`/kb/query/stream`、`/kb/collections`
 - `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
 - `/docs` 中可见日程接口：`/schedule/parse-invite`
 - `/docs` 中可见简历接口：`/resume/upload`、`/resume/{id}/status`、`/resume/{id}/report`、`/resume/{id}/export`、`/resume/list`
 
-**Docker 部署（W5-D2，可选）**
+**Docker 部署（W5-D2）**
 
 当前 Compose 启动 4 个服务：API、Worker、PostgreSQL、Redis。应用使用 PostgreSQL，数据持久化在 `pg_data` 卷。
 
-> 运行前确保项目根目录有 `.env` 文件，包含 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 等必需变量（参考上方环境变量表）。Compose 通过 `env_file` 注入容器。`DATABASE_URL` 和 `REDIS_URL` 由 Compose 环境变量覆盖，`.env` 中的本地值不影响容器内连接。
+服务架构：
+
+```
+┌─────────────────────────────────────────────┐
+│              Docker Network                  │
+│                                              │
+│  ┌──────────┐  ┌──────────┐                 │
+│  │  api:8000 │  │  worker  │                 │
+│  │ (FastAPI) │  │ (Celery) │                 │
+│  └────┬─────┘  └────┬─────┘                 │
+│       │              │                        │
+│       ├──────────────┤                        │
+│       │              │                        │
+│  ┌────▼─────┐  ┌────▼─────┐                 │
+│  │ postgres  │  │  redis   │                 │
+│  │  :5432    │  │  :6379   │                 │
+│  └──────────┘  └──────────┘                 │
+└─────────────────────────────────────────────┘
+       :8000            :5432
+      (宿主机)         (宿主机)
+```
+
+- `api` 和 `worker` 共享同一镜像 `job-copilot:latest`，通过 healthcheck 等待 PG/Redis 就绪
+- Redis 仅限容器间通信，不暴露到宿主机
+- 5 个 Volume 分别持久化 PG 数据、Redis 数据、上传文件、简历文件和向量库
+
+> 运行前确保项目根目录有 `.env` 文件，模板见 `.env.example`，需包含 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 等必需变量。Compose 通过 `env_file` 注入 `.env`；`DATABASE_URL` 和 `REDIS_URL` 由 Compose 环境变量覆盖，`.env` 中的本地值不影响容器内连接。
 
 > **数据卷说明**：`pg_data`、`redis_data`、`upload_data`、`resume_data`、`chroma_data` 分别持久化 PostgreSQL、Redis、知识库上传文件、简历文件和向量库。`down -v` 会清除所有卷数据；普通 `down` 不丢数据。
 
