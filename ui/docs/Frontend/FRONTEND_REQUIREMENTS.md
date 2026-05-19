@@ -58,28 +58,28 @@ job-copilot-v0 是一个求职 AI 助手后端（FastAPI），支持 JD 分析�
 
 | 功能 | 后端端点 | 交互形式 | 验收条件 |
 |---|---|---|---|
-| JD 分析 | `POST /task` (task_type=jd_analyze) | textarea 输入 JD → 提交 → 结构化结果卡片 | 输入任意文本 → 点击提交 → 渲染包含"硬性要求/核心技能/加分项"三个区块的卡片；loading 期间显示骨架屏或 spinner |
-| 简历优化 | `POST /task` (task_type=resume_optimize) | textarea 输入简历片段 + 目标关键词 → 提交 → 对比展示 | 输入简历文本 + 关键词 → 提交 → 左右并排展示原文与优化后文本；差异处有视觉区分（高亮或颜色） |
-| 模拟面试 | `POST /interview/start`、`/interview/answer`、`/interview/evaluate` | 聊天界面（详见 §3.1） | 完整走通 start → 多轮 answer → evaluate 流程；消息按时间线排列；结束后展示评分报告 |
+| JD 分析 | `POST /api/task` (task_type=jd_analyze) | textarea 输入 JD → 提交 → 结构化结果卡片 | 输入任意文本 → 点击提交 → 渲染包含"硬性要求/核心技能/加分项"三个区块的卡片；loading 期间显示骨架屏或 spinner |
+| 简历优化 | `POST /api/task` (task_type=resume_optimize) | textarea 输入简历片段 + 目标关键词 → 提交 → 对比展示 | 输入简历文本 + 关键词 → 提交 → 左右并排展示原文与优化后文本；差异处有视觉区分（高亮或颜色） |
+| 模拟面试 | `POST /api/interview/start`、`/api/interview/answer`、`/api/interview/evaluate` | 聊天界面（详见 §3.1） | 完整走通 start → 多轮 answer → evaluate 流程；消息按时间线排列；结束后展示评分报告 |
 
 ### 中优（能跑通即可）
 
 | 功能 | 后端端点 | 交互形式 | 验收条件 |
 |---|---|---|---|
-| 自我介绍生成 | `POST /task` (task_type=self_intro_generate) | textarea 输入 → 提交 → 文本展示 | 输入文本 → 提交 → 渲染结果文本；有"复制到剪贴板"按钮且功能正常 |
-| 知识库查询 | `POST /kb/query` 或 `/kb/query/stream` | textarea 输入问题 → 提交 → 流式文本 | 输入问题 → 提交 → 文本逐字渲染（打字机效果）；流结束后文本完整可选中 |
-| 简历分析 | `POST /resume/upload`、`GET /resume/{id}/status`、`GET /resume/{id}/report` | 文件上传 → 轮询等待 → 报告展示 | 上传 PDF/DOCX → 显示进度状态（pending/analyzing）→ 完成后渲染结构化报告；失败时显示错误提示 |
+| 自我介绍生成 | `POST /api/task` (task_type=self_intro_generate) | textarea 输入 → 提交 → 文本展示 | 输入文本 → 提交 → 渲染结果文本；有"复制到剪贴板"按钮且功能正常 |
+| 知识库查询 | `POST /api/kb/query` 或 `/api/kb/query/stream` | textarea 输入问题 → 提交 → 流式文本 | 输入问题 → 提交 → 文本逐字渲染（打字机效果）；流结束后文本完整可选中 |
+| 简历分析 | `POST /api/resume/upload`、`GET /api/resume/{id}/status`、`GET /api/resume/{id}/report` | 文件上传 → 轮询等待 → 报告展示 | 上传 PDF/DOCX → 显示进度状态（pending/analyzing）→ 完成后渲染结构化报告；失败时显示错误提示 |
 
 ### §3.1 模拟面试聊天界面详细需求
 
 这是前端最复杂的组件，需要特别注意：
 
 **交互流程：**
-1. 用户点击"开始面试"，填写配置（skill、题目数量、追问次数），调用 `/interview/start`
+1. 用户点击"开始面试"，填写配置（skill、题目数量、追问次数），调用 `/api/interview/start`
 2. 返回 `session_id` + 第一道题，以聊天气泡形式展示
-3. 用户在输入框回答，调用 `/interview/answer`，返回追问或下一题
+3. 用户在输入框回答，调用 `/api/interview/answer`，返回追问或下一题
 4. 所有消息（系统题目 + 用户回答 + 追问）按时间线排列
-5. 面试结束后，用户点击"获取评估"，调用 `/interview/evaluate`，返回评分报告
+5. 面试结束后，用户点击"获取评估"，调用 `/api/interview/evaluate`，返回评分报告
 
 **状态管理要求：**
 - `session_id`：面试期间持久保存，所有后续请求必须携带
@@ -224,6 +224,8 @@ job-copilot-v0 是一个求职 AI 助手后端（FastAPI），支持 JD 分析�
 | 知识库查询 | 模拟逐字输出（setTimeout 模拟流式） |
 | 简历分析 | 模拟 pending → completed 状态变化（3 秒后完成），返回预置报告 |
 
+> Mock 模式提示条的视觉样式见 `DESIGN_SYSTEM.md` §6.9。
+
 ---
 
 ## 6. 设计规范
@@ -283,3 +285,13 @@ ui/
 - 不需要写测试（demo 性质）
 - 不需要对接 CI/CD
 - 不需要 SEO 优化
+
+---
+
+## 9. 执行前桥接文档
+
+如果下一步要让另一个 agent 直接开始写执行计划，先读这份文档：
+
+- `ui/docs/Frontend/IMPLEMENTATION_OUTLINE.md`
+
+它只负责把当前需求拆成可执行批次和模块边界，不替代执行计划。

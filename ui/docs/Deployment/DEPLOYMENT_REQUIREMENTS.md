@@ -134,7 +134,7 @@ Nginx 承担两个职责：
 
 ### 5.1 前端静态文件托管
 
-- 根目录指向 `ui/dist/`（Vite 构建产物）
+- 根目录指向 `/home/ecs-user/job-copilot-v0/ui/dist/`（Vite 构建产物，`npm run build` 输出目录）
 - `try_files` 回退到 `index.html`（SPA 路由支持）
 - 静态资源设置缓存头（JS/CSS 缓存，HTML 不缓存）
 

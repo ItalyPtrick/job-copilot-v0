@@ -357,6 +357,11 @@ data:
 - 收到 `event: done` 后停止渲染，标记完成
 - 流式接口不返回 `sources`，如需来源信息请用同步 `/kb/query`
 
+**错误处理：**
+- 流式过程中若后端出错，连接将直接断开（不会发送 `event: error`）
+- 前端通过 `reader.closed` 或 `catch` 捕获异常，向用户展示"生成中断，请重试"
+- 若连接断开时未收到 `event: done`，视为异常终止
+
 ### 2.9 POST /api/resume/upload
 
 **请求格式**
