@@ -11,10 +11,13 @@ export function AppLayout() {
       <MockBanner />
       <Sidebar />
       <main
-        className="ml-[220px] min-h-screen"
-        style={{ paddingTop: isMockMode ? '32px' : undefined }}
+        className="ml-[220px] h-screen overflow-hidden"
+        style={{
+          height: isMockMode ? 'calc(100vh - 32px)' : undefined,
+          marginTop: isMockMode ? '32px' : undefined,
+        }}
       >
-        <div className="mx-auto max-w-[720px] px-8 py-8">
+        <div className="mx-auto flex h-full w-full max-w-[720px] flex-col overflow-y-auto px-8 py-8">
           <Outlet />
         </div>
       </main>
