@@ -105,10 +105,10 @@ ui/
 - `ui/postcss.config.js`
 
 **操作：**
-- [ ] 在 `ui/` 目录执行 `npm create vite@latest . -- --template react-ts`（注意 `.` 表示当前目录）
-- [ ] 删除 Vite 模板自带的 `src/App.css`、`src/assets/`、默认 counter 代码
-- [ ] `npm install`
-- [ ] 验证 `npm run dev` 启动成功
+- [x] 在 `ui/` 目录执行 `npm create vite@latest . -- --template react-ts`（注意 `.` 表示当前目录）
+- [x] 删除 Vite 模板自带的 `src/App.css`、`src/assets/`、默认 counter 代码
+- [x] `npm install`
+- [x] 验证 `npm run dev` 启动成功
 
 **完成标志：** 浏览器访问 `localhost:5173` 显示空白页面或最小文本，无报错。
 
@@ -123,8 +123,8 @@ ui/
 - `ui/src/lib/utils.ts`（`cn()` 工具函数）
 
 **操作：**
-- [ ] `npm install -D tailwindcss@^3.4 postcss autoprefixer`
-- [ ] 创建 `postcss.config.js`：
+- [x] `npm install -D tailwindcss@^3.4 postcss autoprefixer`
+- [x] 创建 `postcss.config.js`：
 
 ```javascript
 export default {
@@ -135,12 +135,12 @@ export default {
 }
 ```
 
-- [ ] 创建 `tailwind.config.ts`，配置 content 路径、CSS 变量模式的暗色主题色彩 token（参照 DESIGN_SYSTEM §2）
-- [ ] `src/index.css` 写入 `@tailwind base; @tailwind components; @tailwind utilities;` + CSS 变量定义（亮色/暗色两套）
-- [ ] `npx shadcn-ui@latest init`，选择 New York 风格、CSS variables、`src/components/ui` 路径
-- [ ] 安装首批 shadcn 组件：`npx shadcn-ui@latest add button input textarea card tabs`
-- [ ] 安装后续必用依赖：`npm install zustand lucide-react`
-- [ ] 验证 `npm run build` 通过
+- [x] 创建 `tailwind.config.ts`，配置 content 路径、CSS 变量模式的暗色主题色彩 token（参照 DESIGN_SYSTEM §2）
+- [x] `src/index.css` 写入 `@tailwind base; @tailwind components; @tailwind utilities;` + CSS 变量定义（亮色/暗色两套）
+- [x] `npx shadcn-ui@latest init`，选择 New York 风格、CSS variables、`src/components/ui` 路径
+- [x] 安装首批 shadcn 组件：`npx shadcn-ui@latest add button input textarea card tabs`
+- [x] 安装后续必用依赖：`npm install zustand lucide-react`
+- [x] 验证 `npm run build` 通过
 
 **版本锁定说明：** 本项目使用 Tailwind CSS v3（非 v4）。`@tailwindcss/postcss` 是 v4 专用插件，不要安装。shadcn/ui 使用 `shadcn-ui@latest`（v3 兼容），不是 `shadcn@latest`（v4 向）。
 
@@ -154,7 +154,7 @@ export default {
 - `ui/vite.config.ts`
 
 **操作：**
-- [ ] 在 `vite.config.ts` 中添加 `server.proxy` 配置：
+- [x] 在 `vite.config.ts` 中添加 `server.proxy` 配置：
 
 ```typescript
 server: {
@@ -181,7 +181,7 @@ server: {
 - `ui/src/stores/mockMode.ts`
 
 **操作：**
-- [ ] `client.ts` 实现核心 `request<T>()` 函数：
+- [x] `client.ts` 实现核心 `request<T>()` 函数：
   - 接受 `url: string` + `options: { method, body?, headers? }` 参数
   - **核心契约：** `request()` 负责 `JSON.stringify(body)` 并设置 `Content-Type: application/json`；当 body 为 `FormData` 时跳过序列化和 Content-Type（浏览器自动设置 multipart boundary）
   - 调用 `fetch(url, options)`
@@ -189,8 +189,8 @@ server: {
   - 检测响应 content-type 非 JSON（如收到 HTML）→ 视为 proxy 未生效，触发 mock fallback
   - 正常响应 → 解析 JSON 返回 typed 结果
   - **全局 mock 短路：** 若 `useMockModeStore.getState().isMockMode === true`，直接调用 mockFn 返回，不发起网络请求
-- [ ] `mockMode.ts` 实现 Zustand store：`{ isMockMode: boolean, setMockMode: (v) => void }`
-- [ ] 每个 API 函数签名预留 `mockFn` 参数，失败时调用对应 mock 函数
+- [x] `mockMode.ts` 实现 Zustand store：`{ isMockMode: boolean, setMockMode: (v) => void }`
+- [x] 每个 API 函数签名预留 `mockFn` 参数，失败时调用对应 mock 函数
 
 **流式 API 例外：** `request()` + `mockFn` 模式仅覆盖 JSON 请求/响应 API。流式端点（如 Step 3-2 的 `queryKBStream()`）使用 raw `fetch` + `ReadableStream`，不经过 `request()`。流式函数需自行实现：try/catch 网络错误 → 设置 mockMode → 调用对应 mock 流式函数；AbortController 超时控制；组件卸载时 abort。
 
@@ -204,9 +204,9 @@ server: {
 - `ui/src/stores/theme.ts`
 
 **操作：**
-- [ ] 实现 `useThemeStore`：`{ theme: 'light' | 'dark', toggle: () => void }`
-- [ ] 初始值读取 `window.matchMedia('(prefers-color-scheme: dark)')`
-- [ ] `toggle()` 时切换 `document.documentElement.classList` 的 `dark` class
+- [x] 实现 `useThemeStore`：`{ theme: 'light' | 'dark', toggle: () => void }`
+- [x] 初始值读取 `window.matchMedia('(prefers-color-scheme: dark)')`
+- [x] `toggle()` 时切换 `document.documentElement.classList` 的 `dark` class
 - [ ] 在 `main.tsx` 中初始化主题（读取系统偏好并应用）
 
 **完成标志：** 页面 `<html>` 标签根据系统偏好自动添加/移除 `dark` class。
@@ -241,11 +241,11 @@ server: {
 - `MockBanner`：读取 `useMockModeStore`，mock 模式时在页面顶部显示提示条
 
 **操作：**
-- [ ] 安装路由依赖：`npm install react-router-dom`
-- [ ] 创建 `Sidebar.tsx`：使用 React Router `NavLink` 渲染 6 个功能导航项（高优在上，分隔线，中优在下），底部放暗色模式切换按钮
-- [ ] 创建 `MockBanner.tsx`：`useMockModeStore().isMockMode` 为 true 时渲染黄色提示条 "当前为演示模式（后端未连接）"
-- [ ] 创建 `AppLayout.tsx`：flex 布局，左侧 Sidebar，右侧 `<main>` 包裹 `<Outlet />`（max-width 720px 居中）
-- [ ] 验证 `npm run build` 通过
+- [x] 安装路由依赖：`npm install react-router-dom`
+- [x] 创建 `Sidebar.tsx`：使用 React Router `NavLink` 渲染 6 个功能导航项（高优在上，分隔线，中优在下），底部放暗色模式切换按钮
+- [x] 创建 `MockBanner.tsx`：`useMockModeStore().isMockMode` 为 true 时渲染黄色提示条 "当前为演示模式（后端未连接）"
+- [x] 创建 `AppLayout.tsx`：flex 布局，左侧 Sidebar，右侧 `<main>` 包裹 `<Outlet />`（max-width 720px 居中）
+- [x] 验证 `npm run build` 通过
 
 **完成标志：** 三个组件可被 import；布局结构符合 DESIGN_SYSTEM §9.2 的 ASCII 图。
 
@@ -257,7 +257,7 @@ server: {
 - `ui/src/App.tsx`
 
 **操作：**
-- [ ] 在 `App.tsx` 中配置路由（`react-router-dom` 已在 Step 1-1 安装）：
+- [x] 在 `App.tsx` 中配置路由（`react-router-dom` 已在 Step 1-1 安装）：
   - `/` → `LandingPage`
   - `/app` → `AppLayout`（嵌套路由）
     - index → `<Navigate to="/app/jd-analyze" replace />`（默认重定向）
@@ -267,8 +267,8 @@ server: {
     - `/app/self-intro` → `SelfIntroPage`（暂用占位组件）
     - `/app/knowledge-base` → `KnowledgeBasePage`（暂用占位组件）
     - `/app/resume-analysis` → `ResumeAnalysisPage`（暂用占位组件）
-- [ ] 未实现的页面暂时渲染 "Coming Soon" 文本
-- [ ] 验证 `npm run dev` 后各路由可访问
+- [x] 未实现的页面暂时渲染 "Coming Soon" 文本
+- [x] 验证 `npm run dev` 后各路由可访问
 
 **完成标志：** 访问 `/app/jd-analyze` 显示 AppLayout 壳 + 占位内容；Sidebar 导航点击可切换路由。
 
@@ -280,12 +280,12 @@ server: {
 - `ui/src/features/landing/LandingPage.tsx`
 
 **操作：**
-- [ ] 实现 Landing Page：
+- [x] 实现 Landing Page：
   - Hero 区域：项目名 "Job Copilot" + 一句话定位 + "试一试" 按钮（`<Link to="/app/jd-analyze">`）
   - 技术栈展示：分组卡片（后端框架 / 数据层 / AI 能力 / 部署）
   - 右上角暗色模式切换按钮
   - 最大宽度 1080px 居中
-- [ ] 验证暗色模式切换正常
+- [x] 验证暗色模式切换正常
 
 **完成标志：** Landing Page 渲染项目名、技术栈卡片、"试一试"按钮；点击按钮跳转到 `/app/jd-analyze`。
 
@@ -298,7 +298,7 @@ server: {
 - `ui/src/api/jd.ts`
 
 **操作：**
-- [ ] `mocks/jd.ts` 导出预置的 JD 分析结果：
+- [x] `mocks/jd.ts` 导出预置的 JD 分析结果：
 
 ```typescript
 export const mockJDResult = {
@@ -315,7 +315,7 @@ export const mockJDResult = {
 };
 ```
 
-- [ ] `api/jd.ts` 导出 `analyzeJD(jdText: string, targetRole: string)` 函数：
+- [x] `api/jd.ts` 导出 `analyzeJD(jdText: string, targetRole: string)` 函数：
   - 调用 `request<TaskResult>('/api/task', { method: 'POST', body: { task_type: 'jd_analyze', payload: { jd_text: jdText, target_role: targetRole } } })`
   - mock fallback 返回 `mockJDResult`
 
@@ -331,14 +331,14 @@ export const mockJDResult = {
 - `ui/src/components/SkeletonBlock.tsx`
 
 **操作：**
-- [ ] `SkeletonBlock.tsx`：通用骨架屏组件（脉冲动画），接受 `lines` prop 控制行数
-- [ ] `ResultCard.tsx`：接受 `title: string` + `items: string[]`，渲染标题 + 标签列表
-- [ ] `JDAnalyzePage.tsx`：
+- [x] `SkeletonBlock.tsx`：通用骨架屏组件（脉冲动画），接受 `lines` prop 控制行数
+- [x] `ResultCard.tsx`：接受 `title: string` + `items: string[]`，渲染标题 + 标签列表
+- [x] `JDAnalyzePage.tsx`：
   - 表单：textarea（JD 文本）+ input（目标岗位）+ 提交按钮
   - 提交后调用 `analyzeJD()`，loading 期间显示 SkeletonBlock
   - 成功后渲染 3 个 ResultCard（硬性要求 / 核心技能 / 加分项）
   - 错误时显示 toast 或内联错误提示
-- [ ] 手工验证：输入文本 → 提交 → 显示结果（mock 模式下）
+- [x] 手工验证：输入文本 → 提交 → 显示结果（mock 模式下）
 
 **完成标志：** JD 分析完整流程可走通（输入 → loading → 结果卡片）；mock 模式提示条出现。
 
@@ -346,13 +346,13 @@ export const mockJDResult = {
 
 ### Batch 1 Definition of Done
 
-- [ ] `npm run dev` 启动无报错
-- [ ] `npm run build` 通过
-- [ ] Landing Page 正常渲染，"试一试"按钮跳转到功能区
-- [ ] Sidebar 导航可切换路由，当前项高亮
-- [ ] 暗色模式切换正常（Landing + 功能区）
-- [ ] JD 分析完整流程可手工验证（输入 → 提交 → 结果展示）
-- [ ] 后端不可用时自动降级到 mock，顶部显示提示条
+- [x] `npm run dev` 启动无报错
+- [x] `npm run build` 通过
+- [x] Landing Page 正常渲染，"试一试"按钮跳转到功能区
+- [x] Sidebar 导航可切换路由，当前项高亮
+- [x] 暗色模式切换正常（Landing + 功能区）
+- [x] JD 分析完整流程可手工验证（输入 → 提交 → 结果展示）
+- [x] 后端不可用时自动降级到 mock，顶部显示提示条
 
 ---
 
