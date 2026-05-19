@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-Batch 1 全部完成，等待 Batch 2 启动
+Batch 2 全部完成，等待 Batch 3 启动
 
 == 已完成步骤 ==
 [Batch 0] ✅ 全部完成（Definition of Done 通过）
@@ -18,10 +18,18 @@ Batch 1 全部完成，等待 Batch 2 启动
   Step 1-5：JD 分析 — 页面组件（表单 + SkeletonBlock + ResultCard）
   验证：npm run build 通过 / Landing 渲染正常 / Sidebar 导航切换 / JD 分析流程完整 / Mock 降级正常
 
+[Batch 2] ✅ 全部完成（Definition of Done 通过）
+  Step 2-1：简历优化 — Mock + API
+  Step 2-2：简历优化 — 页面组件（表单 + 左右对比展示）
+  Step 2-3：模拟面试 — Interview Store（Zustand 状态管理）
+  Step 2-4：模拟面试 — Mock + API（3 个端点 + 延迟模拟）
+  Step 2-5：模拟面试 — 配置面板 + 聊天区（ChatBubble + ConfigPanel + ChatArea）
+  Step 2-6：模拟面试 — 评估报告组件（总分环形图 + 强项/改进 + 逐题折叠）
+  验证：npm run build 通过 / npm run dev 启动正常 / 简历优化左右对比 / 面试完整流程 / Mock 降级正常
+
 == 待完成步骤 ==
-[Batch 2] Step 2-1：简历优化 — Mock + API
-[Batch 2] Step 2-2：简历优化 — 页面组件
-[Batch 2] Step 2-3：模拟面试 — Interview Store
-[Batch 2] Step 2-4：模拟面试 — Mock + API
-[Batch 2] Step 2-5：模拟面试 — 配置面板 + 聊天区
-[Batch 2] Step 2-6：模拟面试 — 评估报告组件
+[Batch 3] Step 3-1：自我介绍生成 — Mock + API + 页面
+[Batch 3] Step 3-2：知识库查询 — SSE 流式 Mock + API
+[Batch 3] Step 3-3：知识库查询 — 页面组件
+[Batch 3] Step 3-4：简历分析 — Mock + API（文件上传 + 轮询）
+[Batch 3] Step 3-5：简历分析 — 页面组件

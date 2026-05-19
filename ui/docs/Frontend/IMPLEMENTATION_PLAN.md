@@ -367,8 +367,8 @@ export const mockJDResult = {
 - `ui/src/api/resume.ts`
 
 **操作：**
-- [ ] `mocks/resume.ts` 导出预置数据：原文 + 优化后文本
-- [ ] `api/resume.ts` 导出 `optimizeResume(resumeItem: string, targetKeywords: string[], roleSummary: string)` 函数：
+- [x] `mocks/resume.ts` 导出预置数据：原文 + 优化后文本
+- [x] `api/resume.ts` 导出 `optimizeResume(resumeItem: string, targetKeywords: string[], roleSummary: string)` 函数：
   - POST `/api/task`，body: `{ task_type: "resume_optimize", payload: { resume_item, target_jd_keywords, role_summary } }`
   - mock fallback 返回预置对比数据
 
@@ -382,11 +382,11 @@ export const mockJDResult = {
 - `ui/src/features/resume-optimize/ResumeOptimizePage.tsx`
 
 **操作：**
-- [ ] 实现页面：
+- [x] 实现页面：
   - 表单：textarea（简历片段）+ input（目标关键词，逗号分隔）+ input（目标岗位）+ 提交按钮
   - 提交后调用 `optimizeResume()`，loading 期间显示骨架屏
   - 成功后左右并排展示原文与优化后文本，差异处用背景色区分
-- [ ] 手工验证完整流程
+- [x] 手工验证完整流程
 
 **完成标志：** 输入简历文本 → 提交 → 左右对比展示原文与优化结果。
 
@@ -398,7 +398,7 @@ export const mockJDResult = {
 - `ui/src/stores/interview.ts`
 
 **操作：**
-- [ ] 实现 `useInterviewStore`：
+- [x] 实现 `useInterviewStore`：
 
 ```typescript
 interface InterviewState {
@@ -419,7 +419,7 @@ interface InterviewState {
 }
 ```
 
-- [ ] `reset()` 清空所有状态，回到 idle
+- [x] `reset()` 清空所有状态，回到 idle
 
 **完成标志：** Store 可被 import，类型正确，`reset()` 可将状态归零。
 
@@ -432,12 +432,12 @@ interface InterviewState {
 - `ui/src/api/interview.ts`
 
 **操作：**
-- [ ] `mocks/interview.ts` 导出：
+- [x] `mocks/interview.ts` 导出：
   - `mockStartResponse`：含 session_id + 第一道题
   - `mockAnswerResponses`：3 轮回答的预置响应数组（follow_up → next_question → complete）
   - `mockEvaluateResponse`：评估报告
   - mock 模拟延迟 1~2 秒（`await new Promise(r => setTimeout(r, 1500))`）
-- [ ] `api/interview.ts` 导出：
+- [x] `api/interview.ts` 导出：
   - `startInterview(config)` → POST `/api/interview/start`
   - `submitAnswer(sessionId, answer)` → POST `/api/interview/answer`
   - `evaluateInterview(sessionId)` → POST `/api/interview/evaluate`
@@ -456,25 +456,25 @@ interface InterviewState {
 - `ui/src/components/ChatBubble.tsx`
 
 **操作：**
-- [ ] `ChatBubble.tsx`：接受 `role: "system" | "user"` + `content: string`
+- [x] `ChatBubble.tsx`：接受 `role: "system" | "user"` + `content: string`
   - system 消息左对齐，浅色背景
   - user 消息右对齐，主题色背景
-- [ ] `ConfigPanel.tsx`：
+- [x] `ConfigPanel.tsx`：
   - skill 选择（下拉，默认 python_backend）
   - 题目数量（number input，默认 10）
   - 追问次数（number input，默认 1）
   - "开始面试"按钮
   - 面试开始后自动折叠（`display: none` 或 height 动画）
-- [ ] `ChatArea.tsx`：
+- [x] `ChatArea.tsx`：
   - 读取 `useInterviewStore().messages` 渲染 ChatBubble 列表
   - 底部输入框 + 发送按钮
   - 面试进行中：输入框可用；已结束：输入框禁用，显示"获取评估"按钮
   - 消息列表自动滚动到底部（`useEffect` + `scrollIntoView`）
-- [ ] `InterviewPage.tsx`：组合 ConfigPanel + ChatArea，管理面试生命周期：
+- [x] `InterviewPage.tsx`：组合 ConfigPanel + ChatArea，管理面试生命周期：
   - 点击"开始面试" → 调用 `startInterview()` → store.startSession()
   - 用户发送回答 → 调用 `submitAnswer()` → 根据 `action` 字段追加消息（以 API_REFERENCE / 后端实现为准：`action: "follow_up" | "next_question" | "complete"`，注意 FRONTEND_REQUIREMENTS 中的 `status: answer_ok` 为旧契约，已废弃）
   - 点击"获取评估" → 调用 `evaluateInterview()` → 显示评估报告
-- [ ] 手工验证完整流程（mock 模式）
+- [x] 手工验证完整流程（mock 模式）
 
 **完成标志：** 面试完整流程可走通：配置 → 开始 → 多轮问答 → 评估报告展示。
 
@@ -486,11 +486,11 @@ interface InterviewState {
 - `ui/src/features/interview/EvaluationReport.tsx`
 
 **操作：**
-- [ ] 实现评估报告展示：
+- [x] 实现评估报告展示：
   - 总分（大字号）+ 总结评语
   - 强项 / 待改进（标签列表）
   - 逐题详情：题目、回答、分数、反馈、分类（可折叠列表）
-- [ ] 在 `InterviewPage` 中，`status === "evaluated"` 时渲染此组件
+- [x] 在 `InterviewPage` 中，`status === "evaluated"` 时渲染此组件
 
 **完成标志：** 评估报告渲染所有字段；逐题详情可展开/折叠。
 
@@ -498,13 +498,13 @@ interface InterviewState {
 
 ### Batch 2 Definition of Done
 
-- [ ] `npm run dev` 启动无报错
-- [ ] `npm run build` 通过
-- [ ] 简历优化：输入 → 提交 → 左右对比展示
-- [ ] 模拟面试完整流程：配置 → 开始 → 多轮问答（含追问）→ 结束 → 评估报告
-- [ ] 面试聊天 UI：系统消息左对齐、用户消息右对齐、自动滚动
-- [ ] 面试结束后输入框禁用，显示"获取评估"按钮
-- [ ] Mock 模式下所有功能可演示
+- [x] `npm run dev` 启动无报错
+- [x] `npm run build` 通过
+- [x] 简历优化：输入 → 提交 → 左右对比展示
+- [x] 模拟面试完整流程：配置 → 开始 → 多轮问答（含追问）→ 结束 → 评估报告
+- [x] 面试聊天 UI：系统消息左对齐、用户消息右对齐、自动滚动
+- [x] 面试结束后输入框禁用，显示"获取评估"按钮
+- [x] Mock 模式下所有功能可演示
 
 ---
 

@@ -53,6 +53,7 @@ data/resumes/
 data/test-uploads/
 docs/superpowers/
 *.log
+ui/dev_*.txt
 
 # OS files
 .DS_Store
