@@ -1,0 +1,77 @@
+import { useState, useRef, useEffect } from 'react'
+import { ChatBubble } from '@/components/ChatBubble'
+import { useInterviewStore } from '@/stores/interview'
+
+interface ChatAreaProps {
+  onSendAnswer: (answer: string) => void
+  onEvaluate: () => void
+  sendingAnswer: boolean
+  evaluating: boolean
+}
+
+export function ChatArea({ onSendAnswer, onEvaluate, sendingAnswer, evaluating }: ChatAreaProps) {
+  const [input, setInput] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { messages, status } = useInterviewStore()
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault()
+    if (!input.trim() || sendingAnswer) return
+    onSendAnswer(input.trim())
+    setInput('')
+  }
+
+  const inputDisabled = status === 'completed' || status === 'evaluated' || sendingAnswer
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        {messages.map((msg) => (
+          <ChatBubble key={msg.id} role={msg.role} content={msg.content} status={msg.status} />
+        ))}
+        {sendingAnswer && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-[16px] bg-[#F3F2EE] px-4 py-3 dark:bg-[#242320]">
+              <span className="text-[15px] text-muted-foreground animate-pulse">思考中...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="border-t border-input p-4">
+        {status === 'completed' ? (
+          <button
+            onClick={onEvaluate}
+            disabled={evaluating}
+            className="inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+          >
+            {evaluating ? '评估中...' : '获取评估'}
+          </button>
+        ) : (
+          <form onSubmit={handleSend} className="flex gap-3">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={inputDisabled}
+              placeholder={inputDisabled ? '面试已结束' : '输入你的回答...'}
+              className="h-10 flex-1 rounded-[8px] border border-input bg-background px-4 text-[15px] text-foreground placeholder:text-[#9C9690] transition-colors duration-150 focus:border-foreground focus:outline-none disabled:bg-[#F3F2EE] disabled:text-[#9C9690] dark:disabled:bg-[#242320]"
+            />
+            <button
+              type="submit"
+              disabled={inputDisabled || !input.trim()}
+              className="inline-flex h-10 items-center rounded-[10px] bg-primary px-5 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+            >
+              发送
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
