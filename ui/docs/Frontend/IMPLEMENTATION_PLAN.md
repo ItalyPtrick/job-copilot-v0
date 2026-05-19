@@ -520,12 +520,12 @@ interface InterviewState {
 - `ui/src/features/self-intro/SelfIntroPage.tsx`
 
 **操作：**
-- [ ] `mocks/selfIntro.ts`：预置一段自我介绍文本
-- [ ] `api/selfIntro.ts`：`generateSelfIntro(tone, resumeItem, targetKeywords, roleSummary)` → POST `/api/task`
-- [ ] `SelfIntroPage.tsx`：
+- [x] `mocks/selfIntro.ts`：预置一段自我介绍文本
+- [x] `api/selfIntro.ts`：`generateSelfIntro(tone, resumeItem, targetKeywords, roleSummary)` → POST `/api/task`
+- [x] `SelfIntroPage.tsx`：
   - 表单：语气选择（formal/conversational 单选）+ textarea（核心经历）+ input（目标关键词）+ input（目标岗位）+ 提交按钮
   - 结果区：渲染生成的文本 + "复制到剪贴板"按钮（`navigator.clipboard.writeText`）
-- [ ] 手工验证
+- [x] 手工验证
 
 **完成标志：** 输入 → 提交 → 文本展示 + 复制按钮功能正常。
 
@@ -538,10 +538,10 @@ interface InterviewState {
 - `ui/src/api/kb.ts`
 
 **操作：**
-- [ ] `mocks/kb.ts`：
+- [x] `mocks/kb.ts`：
   - 预置答案文本，`mockKBStream()` 使用 `setTimeout` 逐字输出模拟流式（每 50ms 一个字符）
   - 返回一个 async generator 或回调模式
-- [ ] `api/kb.ts`：
+- [x] `api/kb.ts`：
   - `queryKB(question, collectionName?, topK?)` → POST `/api/kb/query`（同步，返回 answer + sources）
   - `queryKBStream(question, collectionName?, topK?, onChunk: (text: string) => void, onDone: () => void, onError: (err: Error) => void)` → POST `/api/kb/query/stream`
     - 使用 `fetch` + `response.body.getReader()` + `TextDecoder` 解析 SSE 事件流：按行缓冲字段（`event:`、`data:` 等），遇到空行（`\n\n`）时组装为一个完整事件再 dispatch
@@ -561,15 +561,15 @@ interface InterviewState {
 - `ui/src/components/MarkdownRenderer.tsx`
 
 **操作：**
-- [ ] 安装 markdown 渲染依赖：`npm install react-markdown remark-gfm`
-- [ ] `MarkdownRenderer.tsx`：封装 `react-markdown`，应用 DESIGN_SYSTEM §17 的样式（代码块、标题、列表等）
-- [ ] `KnowledgeBasePage.tsx`：
+- [x] 安装 markdown 渲染依赖：`npm install react-markdown remark-gfm`
+- [x] `MarkdownRenderer.tsx`：封装 `react-markdown`，应用 DESIGN_SYSTEM §17 的样式（代码块、标题、列表等）
+- [x] `KnowledgeBasePage.tsx`：
   - textarea 输入问题 + 提交按钮
   - 提交后调用 `queryKBStream()`，逐字追加到显示区域（打字机效果）
   - 流式输出期间禁用提交按钮，显示"生成中..."
   - 流结束后文本完整可选中，按钮恢复
   - 异常中断时显示"生成中断，请重试"提示
-- [ ] 手工验证流式输出效果
+- [x] 手工验证流式输出效果
 
 **完成标志：** 输入问题 → 提交 → 文本逐字渲染 → 完成后可选中；中断时有错误提示。
 
@@ -582,11 +582,11 @@ interface InterviewState {
 - `ui/src/api/resumeAnalysis.ts`
 
 **操作：**
-- [ ] `mocks/resumeAnalysis.ts`：
+- [x] `mocks/resumeAnalysis.ts`：
   - `mockUploadResponse`：`{ resume_id: "mock-123", status: "analyzing" }`
   - `mockStatusResponses`：模拟 pending → analyzing → completed 状态变化（3 秒后完成）
   - `mockReportResponse`：预置分析报告
-- [ ] `api/resumeAnalysis.ts`：
+- [x] `api/resumeAnalysis.ts`：
   - `uploadResume(file: File, targetRole?: string)` → POST `/api/resume/upload`（`multipart/form-data`）
   - `getResumeStatus(resumeId: string)` → GET `/api/resume/{resumeId}/status`
   - `getResumeReport(resumeId: string)` → GET `/api/resume/{resumeId}/report`
@@ -602,12 +602,12 @@ interface InterviewState {
 - `ui/src/features/resume-analysis/ResumeAnalysisPage.tsx`
 
 **操作：**
-- [ ] 实现页面：
+- [x] 实现页面：
   - 文件上传区：`<input type="file" accept=".pdf,.docx,.txt" />` + 可选的目标岗位 input + 上传按钮
   - 上传后进入轮询状态：显示进度指示（"分析中..."脉冲动画）
   - 轮询完成（status=completed）→ 调用 `getResumeReport()` → 渲染结构化报告
   - 轮询失败（status=failed 或超时）→ 显示错误提示 + 重试按钮
-- [ ] 手工验证完整流程（mock 模式）
+- [x] 手工验证完整流程（mock 模式）
 
 **完成标志：** 上传文件 → 显示分析中 → 完成后展示报告；超时/失败有错误提示。
 
@@ -615,12 +615,12 @@ interface InterviewState {
 
 ### Batch 3 Definition of Done
 
-- [ ] `npm run dev` 启动无报错
-- [ ] `npm run build` 通过
-- [ ] 自我介绍：输入 → 生成 → 复制到剪贴板
-- [ ] 知识库查询：输入 → 流式逐字渲染 → 完成；中断时有错误提示
-- [ ] 简历分析：上传 → 轮询等待 → 报告展示；超时有提示
-- [ ] 所有 6 个功能 + Landing Page 在 mock 模式下可完整演示
+- [x] `npm run dev` 启动无报错
+- [x] `npm run build` 通过
+- [x] 自我介绍：输入 → 生成 → 复制到剪贴板
+- [x] 知识库查询：输入 → 流式逐字渲染 → 完成；中断时有错误提示
+- [x] 简历分析：上传 → 轮询等待 → 报告展示；超时有提示
+- [x] 所有 6 个功能 + Landing Page 在 mock 模式下可完整演示
 
 ---
 

@@ -1,5 +1,5 @@
 == 当前执行位置 ==
-Batch 2 全部完成，等待 Batch 3 启动
+Batch 3 全部完成（Definition of Done 通过）
 
 == 已完成步骤 ==
 [Batch 0] ✅ 全部完成（Definition of Done 通过）
@@ -27,9 +27,20 @@ Batch 2 全部完成，等待 Batch 3 启动
   Step 2-6：模拟面试 — 评估报告组件（总分环形图 + 强项/改进 + 逐题折叠）
   验证：npm run build 通过 / npm run dev 启动正常 / 简历优化左右对比 / 面试完整流程 / Mock 降级正常
 
+[Batch 3] Step 3-1 ✅ 自我介绍生成 — Mock + API + 页面
+  验证：npm run build 通过 / 路由挂载 / 表单+语气选择+结果卡片+复制按钮
+
+[Batch 3] Step 3-2 ✅ 知识库查询 — SSE 流式 Mock + API
+  验证：npm run build 通过 / queryKBStream SSE 解析+30s 超时+mock 逐字输出
+
+[Batch 3] Step 3-3 ✅ 知识库查询 — 页面组件
+  验证：npm run build 通过 / MarkdownRenderer + KnowledgeBasePage / 流式光标动画 / 路由挂载
+
+[Batch 3] Step 3-4 ✅ 简历分析 — Mock + API（文件上传 + 轮询）
+  验证：npm run build 通过 / uploadResume FormData / pollResumeStatus 2s 间隔 60s 超时 / mock 3s 完成
+
+[Batch 3] Step 3-5 ✅ 简历分析 — 页面组件
+  验证：npm run build 通过 / 文件上传+轮询+报告展示+语义色分数+重试 / 路由挂载
+
 == 待完成步骤 ==
-[Batch 3] Step 3-1：自我介绍生成 — Mock + API + 页面
-[Batch 3] Step 3-2：知识库查询 — SSE 流式 Mock + API
-[Batch 3] Step 3-3：知识库查询 — 页面组件
-[Batch 3] Step 3-4：简历分析 — Mock + API（文件上传 + 轮询）
-[Batch 3] Step 3-5：简历分析 — 页面组件
+（无 — 前端全部交付完成）
