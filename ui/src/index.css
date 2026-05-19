@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 亮色模式 — 基于 DESIGN_SYSTEM §2.1 */
+    --background: 60 20% 97.6%;     /* #FAFAF8 暖奶油白 */
+    --foreground: 0 0% 10%;         /* #1A1A1A 近黑 */
+    --card: 0 0% 100%;              /* #FFFFFF */
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 0% 10%;            /* #1A1A1A 主按钮 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 12 55% 51%;        /* #C8553A 陶土红 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 40 12% 94.5%;          /* #F3F2EE 侧边栏背景 */
+    --muted-foreground: 15 5% 40%;  /* #6B6560 */
+    --accent: 12 55% 51%;           /* #C8553A */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 48%;       /* #C53030 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 33 16% 89%;           /* #E8E4DD */
+    --input: 33 16% 89%;
+    --ring: 12 55% 51%;
+    --radius: 0.75rem;
+    --sidebar: 40 12% 94.5%;        /* #F3F2EE */
+  }
+
+  .dark {
+    /* 暗色模式 — 基于 DESIGN_SYSTEM §2.2 */
+    --background: 40 10% 9.4%;      /* #1A1917 暖深黑 */
+    --foreground: 0 0% 95%;         /* rgba(255,255,255,0.92) */
+    --card: 40 7% 13.3%;            /* #242320 */
+    --card-foreground: 0 0% 95%;
+    --popover: 40 7% 13.3%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 100%;           /* 暗色主按钮反转白 */
+    --primary-foreground: 0 0% 10%;
+    --secondary: 16 62% 60%;        /* #DA7756 暗色强调 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 40 10% 7.5%;           /* #141312 */
+    --muted-foreground: 0 0% 60%;
+    --accent: 16 62% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 60%;       /* #E05252 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 7% 22%;            /* #3D3A35 */
+    --input: 30 7% 22%;
+    --ring: 16 62% 60%;
+    --sidebar: 40 10% 7.5%;         /* #141312 */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}

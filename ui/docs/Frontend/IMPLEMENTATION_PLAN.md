@@ -215,12 +215,12 @@ server: {
 
 ### Batch 0 Definition of Done
 
-- [ ] `npm run dev` 启动无报错
-- [ ] `npm run build` 通过（零 TS 类型错误）
-- [ ] Tailwind 样式生效（可在 App.tsx 中临时加一个带 Tailwind class 的 div 验证）
-- [ ] shadcn/ui Button 组件可正常渲染
-- [ ] Vite proxy 配置存在（功能验证需后端运行，此处仅确认配置正确）
-- [ ] `src/api/client.ts`、`src/stores/theme.ts`、`src/stores/mockMode.ts` 可被 import 无报错
+- [x] `npm run dev` 启动无报错
+- [x] `npm run build` 通过（零 TS 类型错误）
+- [x] Tailwind 样式生效（可在 App.tsx 中临时加一个带 Tailwind class 的 div 验证）
+- [x] shadcn/ui Button 组件可正常渲染
+- [x] Vite proxy 配置存在（功能验证需后端运行，此处仅确认配置正确）
+- [x] `src/api/client.ts`、`src/stores/theme.ts`、`src/stores/mockMode.ts` 可被 import 无报错
 
 ---
 
