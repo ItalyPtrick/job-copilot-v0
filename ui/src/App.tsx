@@ -4,10 +4,9 @@ import { LandingPage } from '@/features/landing/LandingPage'
 import { JDAnalyzePage } from '@/features/jd-analyze/JDAnalyzePage'
 import { ResumeOptimizePage } from '@/features/resume-optimize/ResumeOptimizePage'
 import { InterviewPage } from '@/features/interview/InterviewPage'
-
-function Placeholder({ name }: { name: string }) {
-  return <p className="text-muted-foreground">Coming Soon — {name}</p>
-}
+import { SelfIntroPage } from '@/features/self-intro/SelfIntroPage'
+import { KnowledgeBasePage } from '@/features/knowledge-base/KnowledgeBasePage'
+import { ResumeAnalysisPage } from '@/features/resume-analysis/ResumeAnalysisPage'
 
 function App() {
   return (
@@ -19,9 +18,9 @@ function App() {
           <Route path="jd-analyze" element={<JDAnalyzePage />} />
           <Route path="resume-optimize" element={<ResumeOptimizePage />} />
           <Route path="interview" element={<InterviewPage />} />
-          <Route path="self-intro" element={<Placeholder name="自我介绍" />} />
-          <Route path="knowledge-base" element={<Placeholder name="知识库" />} />
-          <Route path="resume-analysis" element={<Placeholder name="简历分析" />} />
+          <Route path="self-intro" element={<SelfIntroPage />} />
+          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+          <Route path="resume-analysis" element={<ResumeAnalysisPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
