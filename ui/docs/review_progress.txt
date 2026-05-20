@@ -1,0 +1,85 @@
+== 待 review 的文件==
+
+== 已 review 的文件==
+ui/src/components/SkeletonBlock.tsx
+ui/src/components/MockBanner.tsx
+ui/src/components/ResultCard.tsx
+ui/src/components/ChatBubble.tsx
+ui/src/components/MarkdownRenderer.tsx
+ui/src/components/Sidebar.tsx
+ui/src/components/AppLayout.tsx
+ui/src/features/landing/LandingPage.tsx
+ui/src/features/jd-analyze/JDAnalyzePage.tsx
+ui/src/features/resume-optimize/ResumeOptimizePage.tsx
+ui/src/features/interview/ConfigPanel.tsx
+ui/src/features/interview/ChatArea.tsx
+ui/src/features/interview/InterviewPage.tsx
+ui/src/features/interview/EvaluationReport.tsx
+ui/src/features/self-intro/SelfIntroPage.tsx
+ui/src/features/knowledge-base/KnowledgeBasePage.tsx
+ui/src/features/resume-analysis/ResumeAnalysisPage.tsx
+
+
+== 不需要改动的文件 ==
+ui/src/components/MockBanner.tsx - 符合规范，无 H/S 违规（命中条款：§6.9 高 32px / 背景 #FEF3CD 暗色 #3D3520 / Caption 字号 / 文字居中，§15 z-index 70）
+ui/src/components/ChatBubble.tsx - 符合规范，无 H/S 违规（命中条款：§6.3 系统/用户气泡对齐+背景色+最大宽度 80%+圆角 16px+内边距 12px 16px+发送者标识 Caption，§2.3 Error 语义色用于发送失败）
+ui/src/components/MarkdownRenderer.tsx - 符合规范，无 H/S 违规（命中条款：§17 全部元素样式对齐——H1~H3/段落/列表/行内代码/代码块/表格/引用块，§3.2 字号层级正确映射）
+
+
+== 需要改动的文件（未改动） ==
+例：ui/abc.js - 网格不符合要求
+    ui/efg.json - 需完全重构
+ui/src/components/SkeletonBlock.tsx - [轻] 1 处 H 违规：
+  1. §6.7/§19 - shimmer 动画应为"线性渐变从左到右扫过 1.5s linear infinite"，实际用了 Tailwind animate-pulse（opacity 脉冲 2s ease-in-out）
+ui/src/components/ResultCard.tsx - [中] 2 处 H 违规：
+  1. §3.2 - H3 标题缺少行高设置（规范要求 leading 1.4，Tailwind text-[18px] 不自动设行高）
+  2. §4.1 - Badge 标签 py-1.5（=6px）不是 4px 倍数，应为 py-1（4px）或 py-2（8px）
+ui/src/components/Sidebar.tsx - [中] 2 处 H 违规：
+  1. §6.6 - 分隔线上方间距为 8px（nav 的 py-2），规范要求上下 margin space-3（12px）
+  2. §13 - 缺少响应式断点处理，< 1024px 时应收缩为 56px 图标模式，当前始终 w-[220px]
+ui/src/components/AppLayout.tsx - [轻] 1 处 H 违规：
+  1. §13 - 缺少响应式断点适配，< 1024px 时 main 的 ml 应从 220px 变为 56px 配合 Sidebar 收缩
+ui/src/features/landing/LandingPage.tsx - [中] 2 处 H 违规：
+  1. §6.1 - "试一试"按钮 px-6（=24px）偏离规范默认内边距 8px 16px，大按钮（h-10=40px）未单独定义更宽 padding
+  2. §8 - 右上角暗色切换按钮内图标用了 18px，规范"按钮内"应为 16px
+ui/src/features/jd-analyze/JDAnalyzePage.tsx - [严重] 3 处 H 违规：
+  1. §6.1 - 提交按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+  2. §10 - 缺少空状态（无"试试这个示例" Ghost 按钮自动填充 textarea）
+  3. §11.1 - 网络请求失败（可恢复错误）应使用 Toast 通知，当前用了内联提示
+ui/src/features/resume-optimize/ResumeOptimizePage.tsx - [严重] 4 处 H 违规：
+  1. §3.2 - 对比区 H3 标题（18px）缺少 leading-[1.4] 行高设置
+  2. §6.1 - 主按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+  3. §10 - 空状态有"试试示例"按钮但缺少一句简短说明文字（Body 字号，文字-次颜色）
+  4. §11.1 - 网络请求失败（可恢复错误）应使用 Toast 通知，当前用了内联提示
+ui/src/features/interview/ConfigPanel.tsx - [中] 2 处 H 违规：
+  1. §3.2 - H3 标题（18px）缺少 leading-[1.4] 行高设置
+  2. §6.1 - 主按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+ui/src/features/interview/ChatArea.tsx - [轻] 1 处 H 违规：
+  1. §6.1 - 按钮 px-5（=20px）和 px-6（=24px）偏离规范默认内边距 8px 16px
+ui/src/features/interview/InterviewPage.tsx - [轻] 1 处 H 违规：
+  1. §11.1 - 启动面试失败和获取评估失败属可恢复错误，应使用 Toast 通知而非内联提示
+ui/src/features/interview/EvaluationReport.tsx - [严重] 3 处 H 违规：
+  1. §9.4/§3.2 - 总分数字应为 Display 字号（36px/700/1.1），实际用了 28px/bold（H1 字号）
+  2. §3.2 - H3 标题（18px）缺少 leading-[1.4] 行高设置（出现 3 处）
+  3. §8 - 手风琴展开箭头用了内联 SVG 而非 Lucide React 图标库（应使用 ChevronDown）
+ui/src/features/self-intro/SelfIntroPage.tsx - [严重] 3 处 H 违规：
+  1. §4.1 - "试试示例"按钮 py-1.5（=6px）不是 4px 倍数
+  2. §6.1 - 主按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+  3. §11.1 - 网络请求失败（可恢复错误）应使用 Toast 通知，当前用了内联提示
+ui/src/features/knowledge-base/KnowledgeBasePage.tsx - [严重] 3 处 H 违规：
+  1. §4.1 - "试试示例"按钮 py-1.5（=6px）不是 4px 倍数
+  2. §6.1 - 主按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+  3. §11.1 - 流式中断/请求失败（可恢复错误）应使用 Toast 通知，当前用了内联提示
+ui/src/features/resume-analysis/ResumeAnalysisPage.tsx - [严重] 5 处 H 违规：
+  1. §3.2 - 总分 Display 字号（36px）行高用了 leading-none（=1.0），规范要求 1.1
+  2. §3.2 - H3 标题（18px）缺少 leading-[1.4] 行高设置
+  3. §4.1 - 建议列表 space-y-1.5（=6px）不是 4px 倍数
+  4. §6.1 - 主按钮 px-6（=24px）偏离规范默认内边距 8px 16px
+  5. §11.1 - 上传失败/分析超时（可恢复错误）应使用 Toast 通知，当前用了内联提示
+
+
+== 不确定是否需要改动的文件（待人工审核）==
+ui/src/features/resume-analysis/ResumeAnalysisPage.tsx - 2 处软违规需人工：
+  1. (条件 d) §3.2 - Display 字号（36px）缺少 tracking-[-0.02em] 负字间距，属视觉微调
+  2. (条件 a) §10 - 空状态缺少"试试这个示例"按钮，但本页面是文件上传（无 textarea 可填充），规范例举场景不完全吻合
+
