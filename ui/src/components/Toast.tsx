@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useMockModeStore } from '@/stores/mockMode'
+import { getToastViewportClass } from './toastClasses'
 
 type ToastType = 'error' | 'success' | 'warning' | 'info'
 
@@ -30,6 +32,7 @@ let nextId = 0
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  const isMockMode = useMockModeStore((s) => s.isMockMode)
 
   const addToast = useCallback((type: ToastType, message: string) => {
     const id = nextId++
@@ -54,15 +57,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={ctx}>
       {children}
       {createPortal(
-        <div className="fixed right-4 top-4 z-[60] flex flex-col gap-3">
+        <div className={getToastViewportClass(isMockMode)}>
           {toasts.map((t) => (
             <div
               key={t.id}
               className="flex max-w-[360px] animate-toast-in items-start gap-3 rounded-[10px] border border-input bg-card p-4"
+              role={t.type === 'error' ? 'alert' : 'status'}
+              aria-live={t.type === 'error' ? 'assertive' : 'polite'}
+              aria-atomic="true"
             >
               <div className={`w-[3px] shrink-0 self-stretch rounded-full ${TYPE_COLORS[t.type]}`} />
               <p className="flex-1 text-[15px] leading-[1.6] text-foreground">{t.message}</p>
               <button
+                type="button"
+                aria-label="关闭提示"
                 onClick={() => remove(t.id)}
                 className="shrink-0 text-muted-foreground transition-colors duration-150 hover:text-foreground"
               >
