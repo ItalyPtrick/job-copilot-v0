@@ -1,8 +1,8 @@
 # job-copilot-v0
 
-基于 Python + FastAPI + LLM 的求职 AI 助手后端。
+基于 Python + FastAPI + LLM 的求职 AI 助手，含完整前端（React + TypeScript + Tailwind）。
 
-当前阶段：W1~W5 全部完成。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
+当前阶段：W1~W5 全部完成，前端 UI 已实现。项目总览与常规使用说明以 `README.md` 为准，设计决策记录在 `docs/design-decisions.md`。
 
 ---
 
@@ -69,15 +69,21 @@ conda 环境：`job-copilot-v0`，Python 3.11。
 ## 常用命令
 
 ```bash
+# 后端
 uvicorn app.main:app --reload
 pytest tests/ -v --basetemp=.pytest_tmp   # 面试相关测试需要 Redis 运行
 alembic upgrade head
+
+# 前端
+cd ui && npm run dev                      # 开发服务器 localhost:5173
+cd ui && npm run build                    # 生产构建（含 tsc 类型检查）
 ```
 
 ## 安全边界
 
 - 不读取或输出 `.env` 中的密钥值。
 - 不删除 `data/` 目录（chroma 索引 + 上传文件）。
+- 不删除 `ui/node_modules/`（重装耗时长，除非用户明确要求）。
 - 不手动修改 alembic 版本链；需要迁移时用 `alembic revision --autogenerate`。
 - 不在无明确任务要求时改动跨模块契约：API 响应结构、Redis key 前缀/结构、`llm_service` 对外接口。如必须改，先说明影响面。
 
@@ -90,6 +96,10 @@ alembic upgrade head
 - 简历模块：`app/modules/resume/`（parser / analyzer / tasks / service / report_export / router）
 - LLM 封装：`app/services/llm_service.py`，数据库：`app/database/connection.py`
 - 测试文件对应 `tests/test_<模块名>.py`，面试 Skill 配置在 `app/skills/`
+- 前端入口：`ui/src/main.tsx`，路由：`ui/src/App.tsx`
+- 前端页面：`ui/src/features/<模块名>/`（jd-analyze / resume-optimize / interview / self-intro / knowledge-base / resume-analysis）
+- 前端共享组件：`ui/src/components/`（Sidebar / Toast / AppLayout / SkeletonBlock / ResultCard 等）
+- 前端 API 层：`ui/src/api/`，状态管理：`ui/src/stores/`
 
 ## 注释风格提醒
 

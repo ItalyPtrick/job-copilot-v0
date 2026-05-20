@@ -1,6 +1,6 @@
 # job-copilot-v0
 
-> **当前进度**：W1~W5 全部完成。详见 `Today_Plan/daily_progress.txt`。
+> **当前进度**：W1~W5 全部完成，前端 UI 已实现。详见 `Today_Plan/daily_progress.txt`。
 
 ---
 
@@ -50,6 +50,7 @@ job-copilot-v0 是一个求职 AI 助手的后端骨架。它通过统一的任�
 | 数据校验 | Pydantic v2 |
 | 异步任务 | Celery + Redis |
 | PDF 生成 | ReportLab |
+| 前端 | React 18 + TypeScript + Vite + Tailwind CSS + Zustand |
 | 容器化 | Docker + Docker Compose |
 | 测试 | pytest |
 | Python | 3.11（conda 环境 `job-copilot-v0`） |
@@ -127,6 +128,16 @@ uvicorn app.main:app --reload
 - `/docs` 中可见模拟面试接口：`/interview/start`、`/interview/answer`、`/interview/evaluate`
 - `/docs` 中可见日程接口：`/schedule/parse-invite`
 - `/docs` 中可见简历接口：`/resume/upload`、`/resume/{id}/status`、`/resume/{id}/report`、`/resume/{id}/export`、`/resume/list`
+
+**启动前端**
+
+```bash
+cd ui
+npm install   # 首次或依赖变更后
+npm run dev
+```
+
+启动后访问 `http://localhost:5173`，前端通过 Vite proxy 将 `/api/*` 请求代理到后端 `localhost:8000`（自动去掉 `/api` 前缀）。
 
 **Docker 部署（W5-D2）**
 
@@ -244,6 +255,54 @@ docker compose -f docker-compose.dev.yml down -v
 | 停止并清除数据 | `docker compose down -v` |
 
 > **注意**：`docker-compose.yml`（全量）与 `docker-compose.dev.yml`（仅基础设施）暴露相同的 PG/Redis 端口，不可同时 `up`，否则端口冲突。全量部署用前者，本地开发用后者。
+
+---
+
+## 前端
+
+前端是独立的 React SPA，位于 `ui/` 目录，通过 Vite dev server 代理 API 请求到后端。
+
+**页面与后端 API 对照：**
+
+| 页面 | 路由 | 对应后端 API |
+|---|---|---|
+| JD 分析 | `/app/jd-analyze` | `POST /task` (task_type: jd_analyze) |
+| 简历优化 | `/app/resume-optimize` | `POST /task` (task_type: resume_optimize) |
+| 模拟面试 | `/app/interview` | `/interview/start`、`/answer`、`/evaluate` |
+| 自我介绍 | `/app/self-intro` | `POST /task` (task_type: self_intro_generate) |
+| 知识库查询 | `/app/knowledge-base` | `/kb/query/stream` (SSE) |
+| 简历分析 | `/app/resume-analysis` | `/resume/upload`、`/{id}/status`、`/{id}/report` |
+
+**技术要点：**
+
+- Vite proxy：前端所有 `/api/*` 请求代理到 `http://localhost:8000`，去掉 `/api` 前缀
+- 状态管理：Zustand（面试 session、主题切换、mock 模式）
+- 样式：Tailwind CSS + CSS 变量实现亮/暗色主题
+- Mock 模式：内置 mock 数据，无后端时可体验 UI 交互流程（顶部黄色 banner 标识）
+
+**前端目录结构：**
+
+```
+ui/
+├── src/
+│   ├── api/              # 后端 API 调用封装
+│   ├── components/       # 共享组件（Sidebar, Toast, SkeletonBlock 等）
+│   ├── features/         # 按页面组织的功能模块
+│   │   ├── landing/      # 首页
+│   │   ├── jd-analyze/   # JD 分析
+│   │   ├── resume-optimize/  # 简历优化
+│   │   ├── interview/    # 模拟面试（ConfigPanel + ChatArea + EvaluationReport）
+│   │   ├── self-intro/   # 自我介绍
+│   │   ├── knowledge-base/   # 知识库查询
+│   │   └── resume-analysis/  # 简历分析
+│   ├── stores/           # Zustand 状态管理
+│   ├── mocks/            # Mock 数据
+│   ├── App.tsx           # 路由配置
+│   └── main.tsx          # 入口
+├── tailwind.config.ts
+├── vite.config.ts        # proxy 配置
+└── package.json
+```
 
 ---
 
@@ -482,7 +541,7 @@ job-copilot-v0/
 ├── evaluation/                          # 验收测试文档
 ├── tests/                               # pytest
 ├── scripts/                             # 辅助脚本（工具调试等）
-├── ui/                                  # 前端（待重构）
+├── ui/                                  # 前端 React SPA（详见"前端"章节）
 ├── schemas/                             # JSON Schema
 ├── Today_Plan/                          # 学习与开发计划
 │   ├── Overall_Plan/                    # 6 周总计划
