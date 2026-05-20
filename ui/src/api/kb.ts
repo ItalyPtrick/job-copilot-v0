@@ -1,4 +1,5 @@
 import { request } from './client'
+import { parseSSEEvents, shouldFallbackToMockStream } from './kbStream'
 import { useMockModeStore } from '@/stores/mockMode'
 import { mockKBQuery, mockKBStream } from '@/mocks/kb'
 
@@ -88,23 +89,18 @@ export function queryKBStream(
 
       while (true) {
         const { value, done: readerDone } = await reader.read()
-        if (readerDone) break
+        if (readerDone || sig.aborted) break
 
         resetTimeout()
         buffer += decoder.decode(value, { stream: true })
 
-        // 按 \n\n 分割事件
-        const events = buffer.split('\n\n')
-        // 最后一段可能不完整，留在 buffer
-        buffer = events.pop() || ''
+        const parsed = parseSSEEvents(buffer)
+        buffer = parsed.buffer
 
-        for (const event of events) {
-          const parsed = parseSSEEvent(event)
-          if (!parsed) continue
-
-          if (parsed.event === 'message') {
-            chunk(parsed.data)
-          } else if (parsed.event === 'done') {
+        for (const event of parsed.events) {
+          if (event.event === 'message') {
+            chunk(event.data)
+          } else if (event.event === 'done') {
             receivedDone = true
             done()
           }
@@ -113,37 +109,23 @@ export function queryKBStream(
 
       clearTimeout(timeoutId)
 
-      // 流结束但未收到 done 事件 → 异常终止
-      if (!receivedDone) {
+      // 流结束但未收到 done 事件 → 异常终止（abort 除外）
+      if (!receivedDone && !sig.aborted) {
         error(new Error('生成中断，请重试'))
       }
     } catch (err) {
       clearTimeout(timeoutId)
 
-      if (sig.aborted) {
-        error(new Error('生成中断，请重试'))
+      // abort 后静默退出，不调用任何回调
+      if (sig.aborted) return
+
+      if (shouldFallbackToMockStream(err)) {
+        useMockModeStore.getState().setMockMode(true)
+        mockKBStream(chunk, done, error, sig)
         return
       }
 
-      // 网络错误 → 降级到 mock
-      useMockModeStore.getState().setMockMode(true)
-      mockKBStream(chunk, done, error, sig)
+      error(err instanceof Error ? err : new Error('生成中断，请重试'))
     }
   }
-}
-
-function parseSSEEvent(raw: string): { event: string; data: string } | null {
-  let event = 'message'
-  let data = ''
-
-  for (const line of raw.split('\n')) {
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim()
-    } else if (line.startsWith('data:')) {
-      data = line.slice(5).trimStart()
-    }
-  }
-
-  if (!event) return null
-  return { event, data }
 }

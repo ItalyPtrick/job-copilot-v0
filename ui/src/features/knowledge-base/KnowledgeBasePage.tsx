@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { queryKBStream } from '@/api/kb'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
@@ -10,6 +10,12 @@ export function KnowledgeBasePage() {
   const [answer, setAnswer] = useState('')
   const [error, setError] = useState<string | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      controllerRef.current?.abort()
+    }
+  }, [])
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -31,9 +37,7 @@ export function KnowledgeBasePage() {
         },
         (err) => {
           setStreaming(false)
-          if (err.message !== 'aborted') {
-            setError(err.message || '生成中断，请重试')
-          }
+          setError(err.message || '生成中断，请重试')
         }
       )
       controllerRef.current = controller
