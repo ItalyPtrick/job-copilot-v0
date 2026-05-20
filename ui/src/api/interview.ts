@@ -25,6 +25,7 @@ export async function submitAnswer(sessionId: string, answer: string) {
     {
       method: 'POST',
       body: { session_id: sessionId, answer },
+      preserve503: true,
     },
     () => getMockAnswerResponse(sessionId)
   )

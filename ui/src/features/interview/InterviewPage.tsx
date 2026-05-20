@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useInterviewStore } from '@/stores/interview'
 import { startInterview, submitAnswer, evaluateInterview } from '@/api/interview'
+import { HttpError } from '@/api/client'
 import { useToast } from '@/components/Toast'
 import { ConfigPanel } from './ConfigPanel'
 import { ChatArea } from './ChatArea'
@@ -45,10 +46,10 @@ export function InterviewPage() {
       const res = await submitAnswer(sessionId, answer)
       switch (res.action) {
         case 'follow_up':
-          if (res.follow_up) addMessage('system', res.follow_up)
+          if (res.follow_up) addMessage('system', res.follow_up, { questionType: 'follow_up' })
           break
         case 'next_question':
-          if (res.question) addMessage('system', res.question.question)
+          if (res.question) addMessage('system', res.question.question, { questionType: 'main' })
           break
         case 'complete':
           addMessage('system', '面试已结束，可以点击"获取评估"查看报告。')
@@ -57,7 +58,10 @@ export function InterviewPage() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '提交回答失败'
-      markMessageFailed(userMessageId)
+      // 503 = LLM 临时异常，session 已回滚，不标记消息失败，用户可重试
+      if (!(err instanceof HttpError && err.status === 503)) {
+        markMessageFailed(userMessageId)
+      }
       toast.error(message)
     } finally {
       setSendingAnswer(false)

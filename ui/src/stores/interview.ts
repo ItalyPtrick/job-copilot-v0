@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { InterviewEvaluateResponse } from '@/api/types'
 
-interface Message {
+export interface Message {
   id: string
   role: 'system' | 'user'
   content: string
@@ -41,15 +41,13 @@ export const useInterviewStore = create<InterviewState>((set) => ({
     set({
       sessionId,
       status: 'in_progress',
-      messages: [createMessage('system', firstQuestion)],
+      messages: [createMessage('system', firstQuestion, { questionType: 'main' })],
       evaluationResult: null,
     }),
 
   addMessage: (role, content, metadata) => {
     const message = createMessage(role, content, metadata)
-    set((state) => ({
-      messages: [...state.messages, message],
-    }))
+    set((state) => ({ messages: [...state.messages, message] }))
     return message.id
   },
 

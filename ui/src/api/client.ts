@@ -1,9 +1,20 @@
 import { useMockModeStore } from '@/stores/mockMode'
 
+export class HttpError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'HttpError'
+    this.status = status
+  }
+}
+
 interface RequestOptions {
   method?: string
   body?: unknown
   headers?: Record<string, string>
+  preserve503?: boolean
 }
 
 export async function request<T>(
@@ -17,7 +28,7 @@ export async function request<T>(
     throw new Error(`Mock mode active but no mockFn provided for ${url}`)
   }
 
-  const { method = 'GET', body, headers = {} } = options
+  const { method = 'GET', body, headers = {}, preserve503 = false } = options
 
   const fetchOptions: RequestInit = { method, headers: { ...headers } }
 
@@ -33,7 +44,13 @@ export async function request<T>(
   try {
     const response = await fetch(url, fetchOptions)
 
-    // 5xx 触发 mock
+    // 特定业务流需要保留 503，避免进入全局 mock。
+    if (response.status === 503 && preserve503) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new HttpError(503, (errorData as { detail?: string }).detail || '服务暂时不可用')
+    }
+
+    // 其他 5xx 触发 mock
     if (response.status >= 500) {
       return fallbackToMock(mockFn, url)
     }

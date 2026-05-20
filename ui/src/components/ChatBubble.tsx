@@ -2,9 +2,10 @@ interface ChatBubbleProps {
   role: 'system' | 'user'
   content: string
   status?: 'sent' | 'failed'
+  label?: string
 }
 
-export function ChatBubble({ role, content, status = 'sent' }: ChatBubbleProps) {
+export function ChatBubble({ role, content, status = 'sent', label }: ChatBubbleProps) {
   const isUser = role === 'user'
 
   return (
@@ -12,6 +13,7 @@ export function ChatBubble({ role, content, status = 'sent' }: ChatBubbleProps) 
       <div className={`max-w-[80%] ${isUser ? 'text-right' : 'text-left'}`}>
         <div className="mb-1 text-[12px] text-muted-foreground">
           {isUser ? '你' : '系统'}
+          {!isUser && label && <span className="ml-1.5 text-[11px] text-[#9C9690]">· {label}</span>}
           {status === 'failed' && <span className="ml-2 text-[#C53030] dark:text-[#E05252]">发送失败</span>}
         </div>
         <div

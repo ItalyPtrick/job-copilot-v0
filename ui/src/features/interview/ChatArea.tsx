@@ -30,9 +30,27 @@ export function ChatArea({ onSendAnswer, onEvaluate, sendingAnswer, evaluating }
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {messages.map((msg) => (
-          <ChatBubble key={msg.id} role={msg.role} content={msg.content} status={msg.status} />
-        ))}
+        {messages.map((msg) => {
+          const questionType = msg.metadata?.questionType as string | undefined
+          let label: string | undefined
+          if (questionType === 'main' || questionType === 'follow_up') {
+            // 计算该消息的题号/追问号：扫描到它为止的同类消息计数
+            let mainIdx = 0
+            let followIdx = 0
+            for (const m of messages) {
+              if (m.id === msg.id) break
+              const qt = m.metadata?.questionType as string | undefined
+              if (qt === 'main') { mainIdx++; followIdx = 0 }
+              else if (qt === 'follow_up') { followIdx++ }
+            }
+            if (questionType === 'main') {
+              label = `Q${mainIdx + 1}`
+            } else {
+              label = `追问 ${followIdx + 1}`
+            }
+          }
+          return <ChatBubble key={msg.id} role={msg.role} content={msg.content} status={msg.status} label={label} />
+        })}
         {sendingAnswer && (
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-[16px] bg-[#F3F2EE] px-4 py-3 dark:bg-[#242320]">
