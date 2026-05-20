@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { analyzeJD } from '@/api/jd'
 import { ResultCard } from '@/components/ResultCard'
 import { SkeletonBlock } from '@/components/SkeletonBlock'
+import { useToast } from '@/components/Toast'
 
 interface JDResult {
   hard_requirements: string[]
@@ -9,19 +10,21 @@ interface JDResult {
   bonus_skills: string[]
 }
 
+const EXAMPLE_JD = `职位：Python 后端工程师
+要求：3年以上 Python 开发经验，熟悉 FastAPI/Django，了解 PostgreSQL、Redis，有微服务架构经验优先。`
+
 export function JDAnalyzePage() {
   const [jdText, setJdText] = useState('')
   const [targetRole, setTargetRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<JDResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!jdText.trim()) return
 
     setLoading(true)
-    setError(null)
     setResult(null)
 
     try {
@@ -29,13 +32,17 @@ export function JDAnalyzePage() {
       if (res.status === 'success' && res.result) {
         setResult(res.result)
       } else {
-        setError(res.error?.error_message || '分析失败')
+        toast.error(res.error?.error_message || '分析失败')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '请求失败')
+      toast.error(err instanceof Error ? err.message : '请求失败')
     } finally {
       setLoading(false)
     }
+  }
+
+  function fillExample() {
+    setJdText(EXAMPLE_JD)
   }
 
   return (
@@ -43,6 +50,21 @@ export function JDAnalyzePage() {
       <h1 className="text-[28px] font-semibold leading-[1.2] tracking-[-0.015em] text-foreground">
         JD 分析
       </h1>
+
+      {!result && !loading && !jdText && (
+        <div className="flex items-center gap-3">
+          <span className="text-[15px] text-muted-foreground">
+            粘贴职位描述，快速提取核心要求
+          </span>
+          <button
+            type="button"
+            onClick={fillExample}
+            className="rounded-[10px] px-3 py-1 text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)]"
+          >
+            试试示例
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -73,7 +95,7 @@ export function JDAnalyzePage() {
         <button
           type="submit"
           disabled={loading || !jdText.trim()}
-          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
         >
           {loading ? '分析中...' : '开始分析'}
         </button>
@@ -84,12 +106,6 @@ export function JDAnalyzePage() {
           <SkeletonBlock lines={4} />
           <SkeletonBlock lines={3} />
           <SkeletonBlock lines={3} />
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-          {error}
         </div>
       )}
 

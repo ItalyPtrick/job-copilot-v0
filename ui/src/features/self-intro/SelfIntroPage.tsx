@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { generateSelfIntro } from '@/api/selfIntro'
 import { SkeletonBlock } from '@/components/SkeletonBlock'
+import { useToast } from '@/components/Toast'
 
 type Tone = 'formal' | 'conversational'
 
@@ -19,15 +20,14 @@ export function SelfIntroPage() {
   const [role, setRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!resumeItem.trim()) return
 
     setLoading(true)
-    setError(null)
     setResult(null)
 
     try {
@@ -39,10 +39,10 @@ export function SelfIntroPage() {
       if (res.status === 'success' && res.result) {
         setResult(res.result)
       } else {
-        setError(res.error?.error_message || '生成失败')
+        toast.error(res.error?.error_message || '生成失败')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '请求失败')
+      toast.error(err instanceof Error ? err.message : '请求失败')
     } finally {
       setLoading(false)
     }
@@ -69,7 +69,7 @@ export function SelfIntroPage() {
       </h1>
 
       {/* 空状态引导 */}
-      {!result && !loading && !error && !resumeItem && (
+      {!result && !loading && !resumeItem && (
         <div className="flex items-center gap-3">
           <span className="text-[15px] text-muted-foreground">
             输入核心经历，生成面试自我介绍
@@ -77,7 +77,7 @@ export function SelfIntroPage() {
           <button
             type="button"
             onClick={fillExample}
-            className="text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)] rounded-[10px] px-3 py-1.5"
+            className="text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)] rounded-[10px] px-3 py-1"
           >
             试试示例
           </button>
@@ -144,19 +144,13 @@ export function SelfIntroPage() {
         <button
           type="submit"
           disabled={loading || !resumeItem.trim()}
-          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
         >
           {loading ? '生成中...' : '生成自我介绍'}
         </button>
       </form>
 
       {loading && <SkeletonBlock lines={5} />}
-
-      {error && (
-        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-          {error}
-        </div>
-      )}
 
       {result && (
         <div className="relative rounded-[14px] border border-input bg-card p-5">

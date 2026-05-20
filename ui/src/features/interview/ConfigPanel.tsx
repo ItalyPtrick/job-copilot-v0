@@ -33,7 +33,7 @@ export function ConfigPanel({ onStart, loading, visible }: ConfigPanelProps) {
       }`}
     >
       <form onSubmit={handleStart} className="space-y-4 rounded-[14px] border border-input bg-card p-5">
-        <h3 className="text-[18px] font-semibold text-foreground">面试配置</h3>
+        <h3 className="text-[18px] font-semibold leading-[1.4] text-foreground">面试配置</h3>
 
         <div>
           <label className="mb-2 block text-[15px] text-foreground">技能方向</label>
@@ -74,7 +74,7 @@ export function ConfigPanel({ onStart, loading, visible }: ConfigPanelProps) {
         <button
           type="submit"
           disabled={loading || !visible}
-          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+          className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
         >
           {loading ? '准备中...' : '开始面试'}
         </button>

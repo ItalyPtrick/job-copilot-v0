@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { queryKBStream } from '@/api/kb'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import { useToast } from '@/components/Toast'
 
 const EXAMPLE_QUESTION = 'Python 装饰器的原理是什么？如何实现带参数的装饰器？'
 
@@ -8,8 +9,8 @@ export function KnowledgeBasePage() {
   const [question, setQuestion] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [answer, setAnswer] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
+  const toast = useToast()
 
   useEffect(() => {
     return () => {
@@ -24,7 +25,6 @@ export function KnowledgeBasePage() {
 
       setStreaming(true)
       setAnswer('')
-      setError(null)
 
       const controller = queryKBStream(
         question,
@@ -37,7 +37,7 @@ export function KnowledgeBasePage() {
         },
         (err) => {
           setStreaming(false)
-          setError(err.message || '生成中断，请重试')
+          toast.error(err.message || '生成中断，请重试')
         }
       )
       controllerRef.current = controller
@@ -61,7 +61,7 @@ export function KnowledgeBasePage() {
       </h1>
 
       {/* 空状态引导 */}
-      {!answer && !streaming && !error && !question && (
+      {!answer && !streaming && !question && (
         <div className="flex items-center gap-3">
           <span className="text-[15px] text-muted-foreground">
             向知识库提问，获取 RAG 增强的回答
@@ -69,7 +69,7 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={fillExample}
-            className="rounded-[10px] px-3 py-1.5 text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)]"
+            className="rounded-[10px] px-3 py-1 text-[15px] text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)]"
           >
             试试示例
           </button>
@@ -91,7 +91,7 @@ export function KnowledgeBasePage() {
           <button
             type="submit"
             disabled={streaming || !question.trim()}
-            className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+            className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
           >
             {streaming ? '生成中...' : '提问'}
           </button>
@@ -106,12 +106,6 @@ export function KnowledgeBasePage() {
           )}
         </div>
       </form>
-
-      {error && (
-        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-          {error}
-        </div>
-      )}
 
       {(answer || streaming) && (
         <div className="rounded-[14px] border border-input bg-card p-5">

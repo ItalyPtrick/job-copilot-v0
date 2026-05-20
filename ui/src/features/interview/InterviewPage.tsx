@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useInterviewStore } from '@/stores/interview'
 import { startInterview, submitAnswer, evaluateInterview } from '@/api/interview'
+import { useToast } from '@/components/Toast'
 import { ConfigPanel } from './ConfigPanel'
 import { ChatArea } from './ChatArea'
 import { EvaluationReport } from './EvaluationReport'
@@ -9,7 +10,7 @@ export function InterviewPage() {
   const [startLoading, setStartLoading] = useState(false)
   const [sendingAnswer, setSendingAnswer] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   const {
     status,
@@ -25,12 +26,11 @@ export function InterviewPage() {
 
   async function handleStart(config: { skill: string; total_questions: number; follow_up_count: number }) {
     setStartLoading(true)
-    setError(null)
     try {
       const res = await startInterview(config)
       startSession(res.session_id, res.question.question)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '启动面试失败')
+      toast.error(err instanceof Error ? err.message : '启动面试失败')
     } finally {
       setStartLoading(false)
     }
@@ -40,7 +40,6 @@ export function InterviewPage() {
     if (!sessionId) return
     const userMessageId = addMessage('user', answer)
     setSendingAnswer(true)
-    setError(null)
 
     try {
       const res = await submitAnswer(sessionId, answer)
@@ -52,14 +51,14 @@ export function InterviewPage() {
           if (res.question) addMessage('system', res.question.question)
           break
         case 'complete':
-          addMessage('system', '面试已结束，可以点击“获取评估”查看报告。')
+          addMessage('system', '面试已结束，可以点击"获取评估"查看报告。')
           setStatus('completed')
           break
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '提交回答失败'
       markMessageFailed(userMessageId)
-      setError(message)
+      toast.error(message)
     } finally {
       setSendingAnswer(false)
     }
@@ -68,12 +67,11 @@ export function InterviewPage() {
   async function handleEvaluate() {
     if (!sessionId) return
     setEvaluating(true)
-    setError(null)
     try {
       const res = await evaluateInterview(sessionId)
       setEvaluation(res)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取评估失败')
+      toast.error(err instanceof Error ? err.message : '获取评估失败')
     } finally {
       setEvaluating(false)
     }
@@ -103,12 +101,6 @@ export function InterviewPage() {
       <h1 className="text-[28px] font-semibold leading-[1.2] tracking-[-0.015em] text-foreground">
         模拟面试
       </h1>
-
-      {error && (
-        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-          {error}
-        </div>
-      )}
 
       <ConfigPanel onStart={handleStart} loading={startLoading} visible={status === 'idle'} />
 

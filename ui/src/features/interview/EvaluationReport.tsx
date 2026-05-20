@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { InterviewEvaluateResponse } from '@/api/types'
 
 interface EvaluationReportProps {
@@ -44,7 +45,7 @@ export function EvaluationReport({ data }: EvaluationReportProps) {
               stroke="currentColor"
             />
           </svg>
-          <span className={`absolute text-[28px] font-bold ${getScoreColor(data.overall_score)}`}>
+          <span className={`absolute text-[36px] font-bold leading-[1.1] ${getScoreColor(data.overall_score)}`}>
             {data.overall_score}
           </span>
         </div>
@@ -56,7 +57,7 @@ export function EvaluationReport({ data }: EvaluationReportProps) {
       {/* 强项 / 待改进 */}
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-[14px] border border-input bg-card p-5">
-          <h3 className="mb-3 text-[18px] font-semibold text-foreground">强项</h3>
+          <h3 className="mb-3 text-[18px] font-semibold leading-[1.4] text-foreground">强项</h3>
           <div className="flex flex-wrap gap-2">
             {data.strengths.map((s, i) => (
               <span
@@ -69,7 +70,7 @@ export function EvaluationReport({ data }: EvaluationReportProps) {
           </div>
         </div>
         <div className="rounded-[14px] border border-input bg-card p-5">
-          <h3 className="mb-3 text-[18px] font-semibold text-foreground">待改进</h3>
+          <h3 className="mb-3 text-[18px] font-semibold leading-[1.4] text-foreground">待改进</h3>
           <div className="flex flex-wrap gap-2">
             {data.improvements.map((s, i) => (
               <span
@@ -85,7 +86,7 @@ export function EvaluationReport({ data }: EvaluationReportProps) {
 
       {/* 逐题详情 */}
       <div className="space-y-3">
-        <h3 className="text-[18px] font-semibold text-foreground">逐题详情</h3>
+        <h3 className="text-[18px] font-semibold leading-[1.4] text-foreground">逐题详情</h3>
         {data.items.map((item, i) => (
           <div key={i} className="rounded-[14px] border border-input bg-card">
             <button
@@ -108,12 +109,10 @@ export function EvaluationReport({ data }: EvaluationReportProps) {
                     {item.score}
                   </span>
                 </div>
-                <svg
-                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expandedIndex === i ? 'rotate-180' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown
+                  size={16}
+                  className={`text-muted-foreground transition-transform duration-200 ${expandedIndex === i ? 'rotate-180' : ''}`}
+                />
               </div>
             </button>
             {expandedIndex === i && (

@@ -4,6 +4,7 @@ import { optimizeResume } from '@/api/resume'
 import type { ResumeOptimizeResult } from '@/api/resume'
 import { mockResumeOriginal } from '@/mocks/resume'
 import { SkeletonBlock } from '@/components/SkeletonBlock'
+import { useToast } from '@/components/Toast'
 
 export function ResumeOptimizePage() {
   const [resumeItem, setResumeItem] = useState('')
@@ -12,14 +13,13 @@ export function ResumeOptimizePage() {
   const [loading, setLoading] = useState(false)
   const [original, setOriginal] = useState<string | null>(null)
   const [optimized, setOptimized] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!resumeItem.trim()) return
 
     setLoading(true)
-    setError(null)
     setOriginal(null)
     setOptimized(null)
 
@@ -35,10 +35,10 @@ export function ResumeOptimizePage() {
         setOriginal(resumeItem)
         setOptimized(optimizedText)
       } else {
-        setError(res.error?.error_message || '优化失败')
+        toast.error(res.error?.error_message || '优化失败')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '请求失败')
+      toast.error(err instanceof Error ? err.message : '请求失败')
     } finally {
       setLoading(false)
     }
@@ -56,7 +56,6 @@ export function ResumeOptimizePage() {
     setRoleSummary('')
     setOriginal(null)
     setOptimized(null)
-    setError(null)
   }
 
   function getOptimizedText(result: ResumeOptimizeResult | null) {
@@ -103,7 +102,13 @@ export function ResumeOptimizePage() {
       </h1>
 
       {!original && !loading && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <>
+          {!resumeItem && (
+            <p className="text-[15px] text-muted-foreground">
+              粘贴简历片段，对比优化前后效果
+            </p>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-[15px] text-foreground">
               简历片段
@@ -146,7 +151,7 @@ export function ResumeOptimizePage() {
             <button
               type="submit"
               disabled={loading || !resumeItem.trim()}
-              className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+              className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
             >
               {loading ? '优化中...' : '开始优化'}
             </button>
@@ -166,6 +171,7 @@ export function ResumeOptimizePage() {
             </button>
           </div>
         </form>
+        </>
       )}
 
       {loading && (
@@ -174,17 +180,11 @@ export function ResumeOptimizePage() {
         </div>
       )}
 
-      {error && (
-        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-          {error}
-        </div>
-      )}
-
       {original && optimized && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-input bg-card p-5">
-              <h3 className="mb-3 text-[18px] font-semibold text-foreground">
+              <h3 className="mb-3 text-[18px] font-semibold leading-[1.4] text-foreground">
                 原文
               </h3>
               <p className="text-[15px] leading-[1.6] text-foreground">
@@ -192,7 +192,7 @@ export function ResumeOptimizePage() {
               </p>
             </div>
             <div className="rounded-[14px] border border-input bg-card p-5">
-              <h3 className="mb-3 text-[18px] font-semibold text-foreground">
+              <h3 className="mb-3 text-[18px] font-semibold leading-[1.4] text-foreground">
                 优化后
               </h3>
               <p className="text-[15px] leading-[1.6] text-foreground">

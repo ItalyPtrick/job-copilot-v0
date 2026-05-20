@@ -48,7 +48,7 @@ export function ChatArea({ onSendAnswer, onEvaluate, sendingAnswer, evaluating }
           <button
             onClick={onEvaluate}
             disabled={evaluating}
-            className="inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+            className="inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
           >
             {evaluating ? '评估中...' : '获取评估'}
           </button>
@@ -65,7 +65,7 @@ export function ChatArea({ onSendAnswer, onEvaluate, sendingAnswer, evaluating }
             <button
               type="submit"
               disabled={inputDisabled || !input.trim()}
-              className="inline-flex h-10 items-center rounded-[10px] bg-primary px-5 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+              className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
             >
               发送
             </button>

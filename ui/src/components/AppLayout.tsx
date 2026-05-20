@@ -11,7 +11,7 @@ export function AppLayout() {
       <MockBanner />
       <Sidebar />
       <main
-        className="ml-[220px] h-screen overflow-hidden"
+        className="ml-[220px] max-lg:ml-[56px] h-screen overflow-hidden"
         style={{
           height: isMockMode ? 'calc(100vh - 32px)' : undefined,
           marginTop: isMockMode ? '32px' : undefined,

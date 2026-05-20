@@ -32,7 +32,7 @@ export function LandingPage() {
           onClick={toggle}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.06)]"
         >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
         </button>
       </header>
 
@@ -47,7 +47,7 @@ export function LandingPage() {
           </p>
           <Link
             to="/app/jd-analyze"
-            className="mt-8 inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] dark:hover:bg-[rgba(255,255,255,0.9)]"
+            className="mt-8 inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] dark:hover:bg-[rgba(255,255,255,0.9)]"
           >
             试一试
           </Link>

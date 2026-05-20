@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react'
 import { uploadResume, getResumeReport, pollResumeStatus } from '@/api/resumeAnalysis'
 import type { ResumeReport } from '@/api/types'
 import { SkeletonBlock } from '@/components/SkeletonBlock'
+import { useToast } from '@/components/Toast'
 
 type PageState = 'idle' | 'uploading' | 'analyzing' | 'done' | 'error'
 
@@ -21,6 +22,7 @@ export function ResumeAnalysisPage() {
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<ResumeReport | null>(null)
   const cancelRef = useRef<{ cancel: () => void } | null>(null)
+  const toast = useToast()
 
   useEffect(() => {
     return () => {
@@ -61,22 +63,22 @@ export function ResumeAnalysisPage() {
               setReport(r)
               setState('done')
             } catch {
-              setError('获取报告失败')
+              toast.error('获取报告失败')
               setState('error')
             }
           } else {
-            setError(status.error || '分析失败')
+            toast.error(status.error || '分析失败')
             setState('error')
           }
         },
         () => {
-          setError('分析超时，请重试')
+          toast.error('分析超时，请重试')
           setState('error')
         }
       )
       cancelRef.current = poll
     } catch (err) {
-      setError(err instanceof Error ? err.message : '上传失败')
+      toast.error(err instanceof Error ? err.message : '上传失败')
       setState('error')
     }
   }
@@ -138,7 +140,7 @@ export function ResumeAnalysisPage() {
             type="button"
             onClick={handleUpload}
             disabled={!file}
-            className="inline-flex h-10 items-center rounded-[10px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
+            className="inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#E8E4DD] disabled:text-[#9C9690] dark:hover:bg-[rgba(255,255,255,0.9)] dark:disabled:bg-[#3D3A35]"
           >
             开始分析
           </button>
@@ -155,20 +157,22 @@ export function ResumeAnalysisPage() {
         </div>
       )}
 
-      {/* 错误 */}
-      {error && (
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
-            {error}
-          </div>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="rounded-[10px] border border-input px-4 py-2 text-[15px] text-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)]"
-          >
-            重试
-          </button>
+      {/* 客户端验证错误（文件大小） */}
+      {error && state === 'idle' && (
+        <div className="rounded-lg bg-[rgba(197,48,48,0.1)] px-4 py-3 text-[15px] text-[#C53030] dark:text-[#E05252]">
+          {error}
         </div>
+      )}
+
+      {/* 网络错误后的重试按钮 */}
+      {state === 'error' && (
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="rounded-[10px] border border-input px-4 py-2 text-[15px] text-foreground transition-colors duration-150 hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.04)]"
+        >
+          重试
+        </button>
       )}
 
       {/* 报告 */}
@@ -177,7 +181,7 @@ export function ResumeAnalysisPage() {
           {/* 总分 + 总结 */}
           <div className="rounded-[14px] border border-input bg-card p-5">
             <div className="mb-3 flex items-baseline gap-3">
-              <span className={`text-[36px] font-bold leading-none ${scoreColor(report.overall_score)}`}>
+              <span className={`text-[36px] font-bold leading-[1.1] ${scoreColor(report.overall_score)}`}>
                 {report.overall_score.toFixed(1)}
               </span>
               <span className="text-[15px] text-muted-foreground">/ 10</span>
@@ -192,7 +196,7 @@ export function ResumeAnalysisPage() {
               className="rounded-[14px] border border-input bg-card p-5"
             >
               <div className="mb-2 flex items-baseline justify-between">
-                <h3 className="text-[18px] font-semibold text-foreground">{section.name}</h3>
+                <h3 className="text-[18px] font-semibold leading-[1.4] text-foreground">{section.name}</h3>
                 <span className={`text-[18px] font-semibold ${scoreColor(section.score)}`}>
                   {section.score}
                 </span>
@@ -201,7 +205,7 @@ export function ResumeAnalysisPage() {
                 {section.feedback}
               </p>
               {section.suggestions.length > 0 && (
-                <ul className="space-y-1.5 pl-5">
+                <ul className="space-y-2 pl-5">
                   {section.suggestions.map((s, i) => (
                     <li
                       key={i}

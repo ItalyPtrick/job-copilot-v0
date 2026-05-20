@@ -50,6 +50,20 @@ const config: Config = {
         sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       },
+      keyframes: {
+        'toast-in': {
+          '0%': { opacity: '0', transform: 'translateX(100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+      },
+      animation: {
+        'toast-in': 'toast-in 200ms ease-out',
+        shimmer: 'shimmer 1.5s linear infinite',
+      },
     },
   },
   plugins: [],

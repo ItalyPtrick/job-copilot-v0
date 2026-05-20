@@ -27,14 +27,14 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 z-10 flex w-[220px] flex-col border-r border-border bg-muted"
+      className="fixed left-0 z-10 flex w-[220px] max-lg:w-[56px] max-lg:hover:w-[220px] flex-col overflow-hidden border-r border-border bg-muted transition-[width] duration-200"
       style={{ top: isMockMode ? 32 : 0, height: isMockMode ? 'calc(100vh - 32px)' : '100vh' }}
     >
       <div className="flex h-14 items-center px-4">
-        <span className="text-[15px] font-semibold text-foreground">Job Copilot</span>
+        <span className="truncate text-[15px] font-semibold text-foreground">Job Copilot</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="flex-1 space-y-1 px-3 py-3">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -47,8 +47,8 @@ export function Sidebar() {
               }`
             }
           >
-            <item.icon size={18} />
-            <span>{item.label}</span>
+            <item.icon size={18} className="shrink-0" />
+            <span className="truncate">{item.label}</span>
           </NavLink>
         ))}
       </nav>
@@ -58,8 +58,8 @@ export function Sidebar() {
           onClick={toggle}
           className="flex h-9 w-full items-center gap-2 rounded-[8px] px-3 text-[15px] text-muted-foreground transition-colors duration-100 hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.04)]"
         >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          <span>{theme === 'light' ? '暗色模式' : '亮色模式'}</span>
+          {theme === 'light' ? <Moon size={18} className="shrink-0" /> : <Sun size={18} className="shrink-0" />}
+          <span className="truncate">{theme === 'light' ? '暗色模式' : '亮色模式'}</span>
         </button>
       </div>
     </aside>
